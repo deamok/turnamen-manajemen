@@ -1,0 +1,5 @@
+tar -a -c -f "$env:TEMP\tenis-meja-app.zip" --exclude="node_modules" --exclude="dist" --exclude=".git" --exclude=".firebase" --exclude="android" *
+
+scp -o StrictHostKeyChecking=no "$env:TEMP\tenis-meja-app.zip" deamok@192.168.1.12:/home/deamok/tenis-meja-app.zip 2>&1
+
+ssh -o StrictHostKeyChecking=no deamok@192.168.1.12 "cd /home/deamok && rm -rf tenis-meja-app && mkdir tenis-meja-app && unzip -q tenis-meja-app.zip -d tenis-meja-app && rm tenis-meja-app.zip && cd tenis-meja-app && docker compose up --build -d" 2>&1

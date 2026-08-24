@@ -1,0 +1,5 @@
+Lain-lain
+
+ubah meta-data index.html
+
+sudo docker exec ID DOCKER sed -i 's/JUDUL LAMA/JUDUL BARU ANDA/g' /usr/share/nginx/html/index.html

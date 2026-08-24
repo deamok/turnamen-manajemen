@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tenis Meja</string>
+    <string name="title_activity_main">Tenis Meja</string>
+    <string name="package_name">com.ptm.tenismeja</string>
+    <string name="custom_url_scheme">com.ptm.tenismeja</string>
+</resources>

@@ -1,0 +1,11 @@
+{
+  "appId": "com.ptm.tenismeja",
+  "appName": "Tenis Meja",
+  "webDir": "dist",
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
+    }
+  }
+}

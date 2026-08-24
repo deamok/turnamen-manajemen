@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "646046487291",
+    "project_id": "turnamen-tenismeja",
+    "storage_bucket": "turnamen-tenismeja.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646046487291:android:b4d06a7e682ffec140165e",
+        "android_client_info": {
+          "package_name": "com.ptm.tenismeja"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "646046487291-k5edndvljc5enm6rs84d8bhbb421k5om.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ptm.tenismeja",
+            "certificate_hash": "cb1761509323e6c69edc0bcd7f37a66131b26566"
+          }
+        },
+        {
+          "client_id": "646046487291-fhcqdprsjdi61fdt31rqd0a6hhd38q1v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpHb78fhKw3rQ3TjrJLCftyNS06cq7VxE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "646046487291-fhcqdprsjdi61fdt31rqd0a6hhd38q1v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

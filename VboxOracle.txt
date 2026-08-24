@@ -1,0 +1,5 @@
+VBoxManage startvm "zimaos" --type headless
+VBoxManage controlvm "zimaos" poweroff
+
+
+'var(--primary-color)'
