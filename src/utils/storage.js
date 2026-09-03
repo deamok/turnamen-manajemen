@@ -327,3 +327,53 @@ export async function updateUserRole(userId, newRole) {
   await setDoc(userRef, { role: newRole }, { merge: true });
 }
 
+// ================= PERSAHABATAN (FRIENDLY MATCH) =================
+const PERSAHABATAN_COLLECTION = 'persahabatan';
+
+function persahabatanToFirestore(match) {
+  const m = JSON.parse(JSON.stringify(match));
+  if (m.partai) {
+    m.partai.forEach(p => convertMatchSkor(p, 'toFirestore'));
+  }
+  return m;
+}
+
+function persahabatanFromFirestore(match) {
+  if (!match) return null;
+  const m = JSON.parse(JSON.stringify(match));
+  if (m.partai) {
+    m.partai.forEach(p => convertMatchSkor(p, 'fromFirestore'));
+  }
+  return m;
+}
+
+export async function getPersahabatan() {
+  const querySnapshot = await getDocs(collection(db, PERSAHABATAN_COLLECTION));
+  return querySnapshot.docs.map(d => persahabatanFromFirestore({ id: d.id, ...d.data() }));
+}
+
+export async function getPersahabatanById(id) {
+  const docRef = doc(db, PERSAHABATAN_COLLECTION, id);
+  const snap = await getDoc(docRef);
+  if (snap.exists()) {
+    return persahabatanFromFirestore({ id: snap.id, ...snap.data() });
+  }
+  return null;
+}
+
+export async function addPersahabatan(persahabatan) {
+  const id = persahabatan.id;
+  await setDoc(doc(db, PERSAHABATAN_COLLECTION, id), persahabatanToFirestore(persahabatan));
+  return await getPersahabatan();
+}
+
+export async function updatePersahabatan(id, data) {
+  await setDoc(doc(db, PERSAHABATAN_COLLECTION, id), persahabatanToFirestore(data));
+  return await getPersahabatan();
+}
+
+export async function deletePersahabatan(id) {
+  await deleteDoc(doc(db, PERSAHABATAN_COLLECTION, id));
+  return await getPersahabatan();
+}
+

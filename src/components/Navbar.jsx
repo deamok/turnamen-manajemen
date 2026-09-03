@@ -44,6 +44,7 @@ const Navbar = () => {
       </NavLink>
       <div className="navbar-links">
         <NavLink to="/" className={({ isActive }) => isActive ? "active" : ""}>Dashboard</NavLink>
+        <NavLink to="/persahabatan" className={({ isActive }) => isActive ? "active" : ""}>Persahabatan 🤝</NavLink>
         <NavLink to="/jadwal" className={({ isActive }) => isActive ? "active" : ""}>Histori</NavLink>
         
         {currentUser && (

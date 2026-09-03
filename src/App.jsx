@@ -9,6 +9,9 @@ import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Jadwal from './pages/Jadwal';
 import UserManagement from './pages/UserManagement';
+import FriendlyMatchList from './pages/FriendlyMatchList';
+import CreateFriendlyMatch from './pages/CreateFriendlyMatch';
+import FriendlyMatchDetail from './pages/FriendlyMatchDetail';
 
 function App() {
   return (
@@ -23,6 +26,9 @@ function App() {
               <Route path="/pemain" element={<PlayerManagement />} />
               <Route path="/turnamen/baru" element={<CreateTournament />} />
               <Route path="/turnamen/:id" element={<TournamentDetail />} />
+              <Route path="/persahabatan" element={<FriendlyMatchList />} />
+              <Route path="/persahabatan/baru" element={<CreateFriendlyMatch />} />
+              <Route path="/persahabatan/:id" element={<FriendlyMatchDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/jadwal" element={<Jadwal />} />
               <Route path="/users" element={<UserManagement />} />
