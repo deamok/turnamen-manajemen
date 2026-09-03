@@ -575,6 +575,7 @@ const FriendlyMatchDetail = () => {
                     </span>
                     <span>• {partai.tipe === 'Single' ? '👤 Tunggal' : '👥 Ganda'}</span>
                     <span>• {partai.meja || 'Meja 1'}</span>
+                    {partai.jam && <span>• 🕒 {partai.jam}</span>}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -806,7 +807,7 @@ const FriendlyMatchDetail = () => {
                 </div>
               </div>
 
-              {/* Meja Selector */}
+              {/* Meja & Waktu Pertandingan Selector */}
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <div className="form-group" style={{ flex: 1, margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>Meja Tanding</label>
@@ -821,13 +822,12 @@ const FriendlyMatchDetail = () => {
                   </select>
                 </div>
                 <div className="form-group" style={{ flex: 1, margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Format Set</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Waktu / Jam Tanding</label>
                   <input
-                    type="text"
+                    type="time"
                     className="form-input"
-                    disabled
-                    value={matchData.formatSet === 'best_of_3' ? 'Best of 3 (2 Win)' : 'Best of 5 (3 Win)'}
-                    style={{ opacity: 0.7 }}
+                    value={modalJam}
+                    onChange={(e) => setModalJam(e.target.value)}
                   />
                 </div>
               </div>

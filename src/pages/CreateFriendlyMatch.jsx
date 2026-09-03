@@ -313,7 +313,7 @@ const CreateFriendlyMatch = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Jam Mulai</label>
+                <label className="form-label">Waktu / Jam Mulai</label>
                 <input
                   type="time"
                   className="form-input"
@@ -339,18 +339,6 @@ const CreateFriendlyMatch = () => {
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16].map(num => (
                     <option key={num} value={num}>{num} Meja</option>
                   ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Format Game / Set</label>
-                <select
-                  className="form-input"
-                  value={formatSet}
-                  onChange={(e) => setFormatSet(e.target.value)}
-                >
-                  <option value="best_of_5">Best of 5 Sets (Cari 3 Kemenangan)</option>
-                  <option value="best_of_3">Best of 3 Sets (Cari 2 Kemenangan)</option>
                 </select>
               </div>
             </div>
