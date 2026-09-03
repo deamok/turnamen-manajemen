@@ -270,6 +270,13 @@ const FriendlyMatchDetail = () => {
   const isLive = matchData.status === 'berlangsung';
   const requiredWins = matchData.formatSet === 'best_of_3' ? 2 : 3;
 
+  // Table options based on matchData.jumlahMeja
+  const totalTables = matchData.jumlahMeja || 2;
+  const tableOptions = Array.from(
+    { length: Math.max(1, parseInt(totalTables) || 1) },
+    (_, i) => `Meja ${i + 1}`
+  );
+
   // Live modal winner calculation
   const currentValidScoresModal = scores
     .filter(s => s[0] !== '' && s[1] !== '')
@@ -332,7 +339,7 @@ const FriendlyMatchDetail = () => {
         <h2 style={{ fontSize: '1.4rem', textTransform: 'uppercase', margin: 0 }}>LEMBAR REKAPITULASI PERTANDINGAN PERSAHABATAN</h2>
         <h3 style={{ fontSize: '1.1rem', margin: '4px 0 10px 0' }}>{matchData.judul || `${ptmAName} VS ${ptmBName}`}</h3>
         <p style={{ fontSize: '0.85rem', color: '#555', margin: 0 }}>
-          Tanggal: {formatTanggal(matchData.tanggal)} {matchData.jam ? `| Pukul ${matchData.jam}` : ''} | Tempat: {matchData.lokasi || '-'}
+          Tanggal: {formatTanggal(matchData.tanggal)} {matchData.jam ? `| Pukul ${matchData.jam}` : ''} | Tempat: {matchData.lokasi || '-'} | {totalTables} Meja Digunakan
         </p>
         <hr style={{ margin: '12px 0', borderColor: '#ccc' }} />
       </div>
@@ -386,6 +393,7 @@ const FriendlyMatchDetail = () => {
           <div style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
             <span>📅 {formatTanggal(matchData.tanggal)} {matchData.jam && `• ${matchData.jam} WIB`}</span>
             {matchData.lokasi && <span>📍 {matchData.lokasi}</span>}
+            <span>🏓 {totalTables} Meja Digunakan</span>
             <span>⚙️ {matchData.formatSet === 'best_of_3' ? 'Best of 3 Sets' : 'Best of 5 Sets'}</span>
           </div>
         </div>
@@ -807,10 +815,9 @@ const FriendlyMatchDetail = () => {
                     value={modalMeja}
                     onChange={(e) => setModalMeja(e.target.value)}
                   >
-                    <option value="Meja 1">Meja 1</option>
-                    <option value="Meja 2">Meja 2</option>
-                    <option value="Meja 3">Meja 3</option>
-                    <option value="Meja 4">Meja 4</option>
+                    {tableOptions.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="form-group" style={{ flex: 1, margin: 0 }}>
@@ -943,10 +950,9 @@ const FriendlyMatchDetail = () => {
                     value={newPartaiMeja}
                     onChange={(e) => setNewPartaiMeja(e.target.value)}
                   >
-                    <option value="Meja 1">Meja 1</option>
-                    <option value="Meja 2">Meja 2</option>
-                    <option value="Meja 3">Meja 3</option>
-                    <option value="Meja 4">Meja 4</option>
+                    {tableOptions.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
                   </select>
                 </div>
 

@@ -16,8 +16,15 @@ const CreateFriendlyMatch = () => {
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
   const [jam, setJam] = useState('09:00');
   const [lokasi, setLokasi] = useState('');
+  const [jumlahMeja, setJumlahMeja] = useState(2); // Jumlah meja yang digunakan
   const [formatSet, setFormatSet] = useState('best_of_5'); // 'best_of_5' or 'best_of_3'
   const [catatan, setCatatan] = useState('');
+
+  // Table options based on jumlahMeja
+  const tableOptions = Array.from(
+    { length: Math.max(1, parseInt(jumlahMeja) || 1) },
+    (_, i) => `Meja ${i + 1}`
+  );
 
   // PTM A (Home) & PTM B (Away)
   const [ptmANama, setPtmANama] = useState(userPTM || '');
@@ -41,7 +48,7 @@ const CreateFriendlyMatch = () => {
       nomor: 2,
       tipe: 'Double',
       namaPartai: 'Partai 2 (Ganda)',
-      meja: 'Meja 1',
+      meja: 'Meja 2',
       pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } },
       pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }
     },
@@ -91,30 +98,35 @@ const CreateFriendlyMatch = () => {
     return ptm === ptmBNama.trim().toLowerCase();
   });
 
+  const getTableForIndex = (idx) => {
+    const total = Math.max(1, parseInt(jumlahMeja) || 1);
+    return `Meja ${(idx % total) + 1}`;
+  };
+
   const applyPreset = (presetType) => {
     if (presetType === '3_partai') {
       setPartaiList([
-        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 2, tipe: 'Double', namaPartai: 'Partai 2 (Ganda)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
-        { id: generateId(), nomor: 3, tipe: 'Single', namaPartai: 'Partai 3 (Tunggal 2)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } }
+        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: getTableForIndex(0), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 2, tipe: 'Double', namaPartai: 'Partai 2 (Ganda)', meja: getTableForIndex(1), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
+        { id: generateId(), nomor: 3, tipe: 'Single', namaPartai: 'Partai 3 (Tunggal 2)', meja: getTableForIndex(2), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } }
       ]);
     } else if (presetType === '5_partai') {
       setPartaiList([
-        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 2, tipe: 'Single', namaPartai: 'Partai 2 (Tunggal 2)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 3, tipe: 'Double', namaPartai: 'Partai 3 (Ganda 1)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
-        { id: generateId(), nomor: 4, tipe: 'Single', namaPartai: 'Partai 4 (Tunggal 3)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 5, tipe: 'Double', namaPartai: 'Partai 5 (Ganda 2)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } }
+        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: getTableForIndex(0), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 2, tipe: 'Single', namaPartai: 'Partai 2 (Tunggal 2)', meja: getTableForIndex(1), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 3, tipe: 'Double', namaPartai: 'Partai 3 (Ganda 1)', meja: getTableForIndex(2), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
+        { id: generateId(), nomor: 4, tipe: 'Single', namaPartai: 'Partai 4 (Tunggal 3)', meja: getTableForIndex(3), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 5, tipe: 'Double', namaPartai: 'Partai 5 (Ganda 2)', meja: getTableForIndex(4), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } }
       ]);
     } else if (presetType === '7_partai') {
       setPartaiList([
-        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 2, tipe: 'Single', namaPartai: 'Partai 2 (Tunggal 2)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 3, tipe: 'Double', namaPartai: 'Partai 3 (Ganda 1)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
-        { id: generateId(), nomor: 4, tipe: 'Single', namaPartai: 'Partai 4 (Tunggal 3)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 5, tipe: 'Double', namaPartai: 'Partai 5 (Ganda 2)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
-        { id: generateId(), nomor: 6, tipe: 'Single', namaPartai: 'Partai 6 (Tunggal 4)', meja: 'Meja 1', pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
-        { id: generateId(), nomor: 7, tipe: 'Double', namaPartai: 'Partai 7 (Ganda 3)', meja: 'Meja 1', pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } }
+        { id: generateId(), nomor: 1, tipe: 'Single', namaPartai: 'Partai 1 (Tunggal 1)', meja: getTableForIndex(0), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 2, tipe: 'Single', namaPartai: 'Partai 2 (Tunggal 2)', meja: getTableForIndex(1), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 3, tipe: 'Double', namaPartai: 'Partai 3 (Ganda 1)', meja: getTableForIndex(2), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
+        { id: generateId(), nomor: 4, tipe: 'Single', namaPartai: 'Partai 4 (Tunggal 3)', meja: getTableForIndex(3), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 5, tipe: 'Double', namaPartai: 'Partai 5 (Ganda 2)', meja: getTableForIndex(4), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } },
+        { id: generateId(), nomor: 6, tipe: 'Single', namaPartai: 'Partai 6 (Tunggal 4)', meja: getTableForIndex(5), pemainA: { nama: '', id: '' }, pemainB: { nama: '', id: '' } },
+        { id: generateId(), nomor: 7, tipe: 'Double', namaPartai: 'Partai 7 (Ganda 3)', meja: getTableForIndex(6), pemainA: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }, pemainB: { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } } }
       ]);
     }
   };
@@ -126,7 +138,7 @@ const CreateFriendlyMatch = () => {
       nomor: nextNomor,
       tipe: tipe,
       namaPartai: `Partai ${nextNomor} (${tipe === 'Single' ? 'Tunggal' : 'Ganda'})`,
-      meja: 'Meja 1',
+      meja: getTableForIndex(nextNomor - 1),
       pemainA: tipe === 'Single' ? { nama: '', id: '' } : { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } },
       pemainB: tipe === 'Single' ? { nama: '', id: '' } : { nama: '', id: '', pemain1: { nama: '', id: '' }, pemain2: { nama: '', id: '' } }
     };
@@ -181,6 +193,7 @@ const CreateFriendlyMatch = () => {
         tanggal: tanggal,
         jam: jam,
         lokasi: lokasi.trim(),
+        jumlahMeja: parseInt(jumlahMeja) || 1,
         formatSet: formatSet,
         catatan: catatan.trim(),
         status: 'terjadwal',
@@ -307,6 +320,26 @@ const CreateFriendlyMatch = () => {
                   value={jam}
                   onChange={(e) => setJam(e.target.value)}
                 />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Jumlah Meja yang Digunakan *</label>
+                <select
+                  className="form-input"
+                  value={jumlahMeja}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setJumlahMeja(val);
+                    setPartaiList(prev => prev.map((p, idx) => ({
+                      ...p,
+                      meja: `Meja ${(idx % val) + 1}`
+                    })));
+                  }}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16].map(num => (
+                    <option key={num} value={num}>{num} Meja</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
@@ -539,14 +572,13 @@ const CreateFriendlyMatch = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <select
                         className="form-input"
-                        value={partai.meja || 'Meja 1'}
+                        value={partai.meja || tableOptions[0] || 'Meja 1'}
                         onChange={(e) => handleUpdatePartai(index, 'meja', e.target.value)}
                         style={{ padding: '4px 10px', fontSize: '0.8rem', width: 'auto' }}
                       >
-                        <option value="Meja 1">Meja 1</option>
-                        <option value="Meja 2">Meja 2</option>
-                        <option value="Meja 3">Meja 3</option>
-                        <option value="Meja 4">Meja 4</option>
+                        {tableOptions.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
                       </select>
 
                       <button
