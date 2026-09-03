@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
+const KARET_OPTIONS = [
+  'Normal',
+  'Anti Spin',
+  'Bintik',
+  'Bintik Serang'
+];
+
 const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
     noHP: '',
     divisi: '1',
-    namaPTM: ''
+    namaPTM: '',
+    karetForehand: '',
+    karetBackhand: ''
   });
 
   useEffect(() => {
@@ -16,7 +25,9 @@ const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
         email: pemain.email || '',
         noHP: pemain.noHP || '',
         divisi: pemain.divisi || '1',
-        namaPTM: pemain.namaPTM || ''
+        namaPTM: pemain.namaPTM || '',
+        karetForehand: pemain.karetForehand || '',
+        karetBackhand: pemain.karetBackhand || ''
       });
     }
   }, [pemain]);
@@ -62,6 +73,29 @@ const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
             <input type="text" className="form-input" name="namaPTM" value={formData.namaPTM} onChange={handleChange} required />
           </div>
         </div>
+        
+        {/* Jenis Karet Forehand & Backhand (Optional) */}
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">🏓 Karet Forehand <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Opsional)</span></label>
+            <select className="form-select" name="karetForehand" value={formData.karetForehand || ''} onChange={handleChange}>
+              <option value="">-- Pilih (Opsional) --</option>
+              {KARET_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">🏓 Karet Backhand <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Opsional)</span></label>
+            <select className="form-select" name="karetBackhand" value={formData.karetBackhand || ''} onChange={handleChange}>
+              <option value="">-- Pilih (Opsional) --</option>
+              {KARET_OPTIONS.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="btn-group">
           <button type="submit" className="btn btn-primary">{pemain ? 'Simpan' : 'Tambah'}</button>
           <button type="button" className="btn btn-secondary" onClick={onCancel}>Batal</button>

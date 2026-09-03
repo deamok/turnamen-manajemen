@@ -49,6 +49,8 @@ export function AuthProvider({ children }) {
               noHP: '',
               divisi: '',
               namaPTM: '',
+              karetForehand: 'Normal',
+              karetBackhand: 'Normal',
               ownerUid: user.uid,
               ownerPTM: '',
               pts: 0,

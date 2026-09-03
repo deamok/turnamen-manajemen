@@ -25,37 +25,59 @@ const PlayerTable = ({ pemainList, onEdit, onDelete, canEdit = true }) => {
         <thead>
           <tr>
             <th style={{ width: '5%' }}>No</th>
-            <th style={{ width: '25%' }}>Nama</th>
-            <th style={{ width: '15%' }}>Nomor HP</th>
+            <th style={{ width: '22%' }}>Nama</th>
+            <th style={{ width: '13%' }}>Nomor HP</th>
             <th style={{ width: '10%' }}>Divisi</th>
-            <th style={{ width: '20%' }}>Nama PTM</th>
-            <th style={{ width: '10%' }}>PTS</th>
-            {canEdit && <th style={{ width: '15%' }}>Aksi</th>}
+            <th style={{ width: '18%' }}>Nama PTM</th>
+            <th style={{ width: '17%' }}>Karet Bet (FH / BH)</th>
+            <th style={{ width: '8%' }}>PTS</th>
+            {canEdit && <th style={{ width: '12%' }}>Aksi</th>}
           </tr>
         </thead>
         <tbody>
-          {pemainList.map((pemain, index) => (
-            <tr key={pemain.id}>
-              <td>{index + 1}</td>
-              <td><strong>{pemain.nama}</strong></td>
-              <td>{pemain.noHP || '-'}</td>
-              <td>
-                <span className={`badge ${badgeColors[pemain.divisi] || ''}`}>
-                  Div {pemain.divisi}
-                </span>
-              </td>
-              <td>{pemain.namaPTM}</td>
-              <td><strong style={{ color: 'var(--primary-color)' }}>{pemain.pts || 0}</strong></td>
-              {canEdit && (
+          {pemainList.map((pemain, index) => {
+            const fh = pemain.karetForehand || '-';
+            const bh = pemain.karetBackhand || '-';
+
+            return (
+              <tr key={pemain.id}>
+                <td>{index + 1}</td>
+                <td><strong>{pemain.nama}</strong></td>
+                <td>{pemain.noHP || '-'}</td>
                 <td>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => onEdit(pemain)}>✏️</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => onDelete(pemain.id)}>🗑️</button>
+                  <span className={`badge ${badgeColors[pemain.divisi] || ''}`}>
+                    Div {pemain.divisi}
+                  </span>
+                </td>
+                <td>{pemain.namaPTM}</td>
+                <td>
+                  <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
+                    <div>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>FH: </span>
+                      <span style={{ color: fh === '-' || fh === 'Normal' ? 'var(--text-primary)' : 'var(--warning-color)', fontWeight: fh !== '-' && fh !== 'Normal' ? 'bold' : 'normal' }}>
+                        {fh}
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>BH: </span>
+                      <span style={{ color: bh === '-' || bh === 'Normal' ? 'var(--text-primary)' : 'var(--secondary-color)', fontWeight: bh !== '-' && bh !== 'Normal' ? 'bold' : 'normal' }}>
+                        {bh}
+                      </span>
+                    </div>
                   </div>
                 </td>
-              )}
-            </tr>
-          ))}
+                <td><strong style={{ color: 'var(--primary-color)' }}>{pemain.pts || 0}</strong></td>
+                {canEdit && (
+                  <td>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-sm btn-secondary" onClick={() => onEdit(pemain)}>✏️</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => onDelete(pemain.id)}>🗑️</button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -14,8 +14,17 @@ const Profile = () => {
     nama: '',
     noHP: '',
     namaPTM: '',
-    divisi: ''
+    divisi: '',
+    karetForehand: '',
+    karetBackhand: ''
   });
+
+  const KARET_OPTIONS = [
+    'Normal',
+    'Anti Spin',
+    'Bintik',
+    'Bintik Serang'
+  ];
 
   useEffect(() => {
     if (!currentUser) {
@@ -34,7 +43,9 @@ const Profile = () => {
             nama: data.nama || data.name || currentUser.displayName || '',
             noHP: data.noHP || '',
             namaPTM: data.namaPTM || '',
-            divisi: data.divisi || ''
+            divisi: data.divisi || '',
+            karetForehand: data.karetForehand || '',
+            karetBackhand: data.karetBackhand || ''
           });
         }
       } catch (e) {
@@ -50,7 +61,7 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nama || !formData.noHP || !formData.namaPTM || !formData.divisi) {
-      alert('Semua data wajib diisi!');
+      alert('Nama, No HP, Nama PTM, dan Divisi wajib diisi!');
       return;
     }
 
@@ -62,7 +73,9 @@ const Profile = () => {
         nama: formData.nama,
         noHP: formData.noHP,
         namaPTM: formData.namaPTM,
-        divisi: formData.divisi
+        divisi: formData.divisi,
+        karetForehand: formData.karetForehand || '',
+        karetBackhand: formData.karetBackhand || ''
       });
       alert('Profil berhasil diperbarui!');
       navigate('/');
@@ -123,7 +136,7 @@ const Profile = () => {
             />
           </div>
           
-          <div className="form-group" style={{ marginBottom: '25px' }}>
+          <div className="form-group" style={{ marginBottom: '15px' }}>
             <label className="form-label">Divisi</label>
             <select 
               className="form-input" 
@@ -138,6 +151,50 @@ const Profile = () => {
               <option value="4">Divisi 4</option>
               <option value="5">Divisi 5</option>
             </select>
+          </div>
+
+          {/* Jenis Karet Forehand & Backhand (Optional) */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '15px',
+            marginBottom: '25px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            padding: '15px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-light)'
+          }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🏓</span> Karet Forehand <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Opsional)</span>
+              </label>
+              <select
+                className="form-input"
+                value={formData.karetForehand || ''}
+                onChange={e => setFormData({ ...formData, karetForehand: e.target.value })}
+              >
+                <option value="">-- Pilih (Opsional) --</option>
+                {KARET_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🏓</span> Karet Backhand <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Opsional)</span>
+              </label>
+              <select
+                className="form-input"
+                value={formData.karetBackhand || ''}
+                onChange={e => setFormData({ ...formData, karetBackhand: e.target.value })}
+              >
+                <option value="">-- Pilih (Opsional) --</option>
+                {KARET_OPTIONS.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
           </div>
           
           <div style={{ display: 'flex', gap: '10px' }}>
