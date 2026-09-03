@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPemainByScope, addPemain, updatePemain, deletePemain } from '../utils/storage';
+import { getPemainByScope, addPemain, updatePemain, deletePemain, syncFriendlyMatchPlayersToMembers } from '../utils/storage';
 import { generateId } from '../utils/helpers';
 import PlayerForm from '../components/PlayerForm';
 import PlayerTable from '../components/PlayerTable';
@@ -11,10 +11,14 @@ const PlayerManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingPemain, setEditingPemain] = useState(null);
   const [filterDivisi, setFilterDivisi] = useState('Semua');
+  const [filterPTM, setFilterPTM] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadPemain = async () => {
     try {
+      // Sinkronisasi otomatis pemain dari laga persahabatan ke daftar Member
+      await syncFriendlyMatchPlayersToMembers(currentUser);
+
       const data = await getPemainByScope({
         isSuperAdmin,
         uid: currentUser?.uid,
@@ -82,12 +86,18 @@ const PlayerManagement = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Daftar PTM yang unik untuk filter
+  const ptmOptions = Array.from(
+    new Set(pemainList.map(p => (p.namaPTM || p.ownerPTM || '').trim()).filter(Boolean))
+  ).sort();
+
   const filteredPemain = pemainList.filter(p => {
     const matchDivisi = filterDivisi === 'Semua' || p.divisi === filterDivisi;
+    const matchPTM = filterPTM === 'Semua' || (p.namaPTM || p.ownerPTM || '').trim().toLowerCase() === filterPTM.toLowerCase();
     const matchQuery = !searchQuery ||
       p.nama?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.namaPTM && p.namaPTM.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchDivisi && matchQuery;
+    return matchDivisi && matchPTM && matchQuery;
   }).sort((a, b) => (b.pts || 0) - (a.pts || 0));
 
   const divisiGroups = ['Semua', '1', '2', '3', '4', '5'];
@@ -109,7 +119,7 @@ const PlayerManagement = () => {
           {!isSuperAdmin && (
             <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
               {userPTM
-                ? `Menampilkan member ${userPTM}`
+                ? `Menampilkan member ${userPTM} dan pemain yang Anda daftarkan`
                 : 'Menampilkan member yang Anda tambahkan'}
             </p>
           )}
@@ -144,17 +154,39 @@ const PlayerManagement = () => {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
-        <div className="divisi-filter" style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', margint: '10px' }}>
-          {divisiGroups.map(div => (
-            <button
-              key={div}
-              className={`chip ${filterDivisi === div ? 'active' : ''}`}
-              onClick={() => setFilterDivisi(div)}
-            >
-              {div === 'Semua' ? 'Semua Divisi' : `Divisi ${div}`}
-            </button>
-          ))}
+      {/* Filter Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Divisi Filter */}
+          <div className="divisi-filter" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {divisiGroups.map(div => (
+              <button
+                key={div}
+                className={`chip ${filterDivisi === div ? 'active' : ''}`}
+                onClick={() => setFilterDivisi(div)}
+              >
+                {div === 'Semua' ? 'Semua Divisi' : `Divisi ${div}`}
+              </button>
+            ))}
+          </div>
+
+          {/* PTM Filter Dropdown */}
+          {ptmOptions.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>🏠 PTM:</span>
+              <select
+                className="form-select"
+                value={filterPTM}
+                onChange={e => setFilterPTM(e.target.value)}
+                style={{ fontSize: '0.85rem', padding: '4px 10px', width: 'auto', margin: 0 }}
+              >
+                <option value="Semua">Semua PTM ({pemainList.length})</option>
+                {ptmOptions.map(ptmName => (
+                  <option key={ptmName} value={ptmName}>{ptmName}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>

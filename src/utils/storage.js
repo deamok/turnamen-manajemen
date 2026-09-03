@@ -68,18 +68,18 @@ export async function getPemainByScope({ isSuperAdmin, uid, ptm }) {
   const all = await getPemain();
   if (isSuperAdmin) return all;
 
-  // admin & player: PTM yang sama persis
+  // admin & player: tampilkan pemain yang dibuat user (ownerUid), atau PTM yang sama, atau akun user sendiri
   return all.filter(p => {
     const memberPTM = (p.namaPTM || p.ownerPTM || '').trim().toLowerCase();
     const myPTM = (ptm || '').trim().toLowerCase();
     
-    // Jika admin sudah memiliki PTM, HANYA tampilkan pemain dari PTM tersebut (dan dirinya sendiri)
-    if (myPTM) {
-      return memberPTM === myPTM || p.id === uid;
-    }
-    
-    // Jika admin belum menyetel PTM-nya, tampilkan pemain yang pernah ia buat
-    return p.ownerUid === uid || p.id === uid;
+    // Pemain yang dibuat oleh user ini atau akun miliknya sendiri
+    if (p.ownerUid === uid || p.id === uid) return true;
+
+    // Pemain dari PTM yang sama
+    if (myPTM && memberPTM === myPTM) return true;
+
+    return false;
   });
 }
 
@@ -179,6 +179,42 @@ export async function ensurePemainRegistered(playerList, currentUser) {
   } catch (err) {
     console.error("Error auto-registering players:", err);
     return [];
+  }
+}
+
+/**
+ * Sinkronisasi seluruh pemain dari seluruh laga persahabatan ke daftar Member
+ */
+export async function syncFriendlyMatchPlayersToMembers(currentUser) {
+  try {
+    const matches = await getPersahabatan();
+    const playersToRegister = [];
+
+    matches.forEach(match => {
+      const ptmAName = (match.ptmA?.nama || '').trim();
+      const ptmBName = (match.ptmB?.nama || '').trim();
+
+      (match.partai || []).forEach(p => {
+        if (p.tipe === 'Single') {
+          if (p.pemainA?.nama) playersToRegister.push({ nama: p.pemainA.nama, namaPTM: ptmAName });
+          if (p.pemainB?.nama) playersToRegister.push({ nama: p.pemainB.nama, namaPTM: ptmBName });
+        } else {
+          if (p.pemainA?.pemain1?.nama) playersToRegister.push({ nama: p.pemainA.pemain1.nama, namaPTM: ptmAName });
+          if (p.pemainA?.pemain2?.nama) playersToRegister.push({ nama: p.pemainA.pemain2.nama, namaPTM: ptmAName });
+          if (p.pemainA?.nama) playersToRegister.push({ nama: p.pemainA.nama, namaPTM: ptmAName });
+
+          if (p.pemainB?.pemain1?.nama) playersToRegister.push({ nama: p.pemainB.pemain1.nama, namaPTM: ptmBName });
+          if (p.pemainB?.pemain2?.nama) playersToRegister.push({ nama: p.pemainB.pemain2.nama, namaPTM: ptmBName });
+          if (p.pemainB?.nama) playersToRegister.push({ nama: p.pemainB.nama, namaPTM: ptmBName });
+        }
+      });
+    });
+
+    if (playersToRegister.length > 0) {
+      await ensurePemainRegistered(playersToRegister, currentUser);
+    }
+  } catch (err) {
+    console.error("Error syncing friendly match players to members:", err);
   }
 }
 
