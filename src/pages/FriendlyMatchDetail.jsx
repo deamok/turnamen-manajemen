@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPersahabatanById, updatePersahabatan, deletePersahabatan, getPemain, ensurePemainRegistered } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +56,18 @@ const FriendlyMatchDetail = () => {
   const canManage = isSuperAdmin || (currentUser && matchData?.createdBy === currentUser.uid);
 
   // Handle opening score modal
+  // Lock scroll when Fullscreen Big Scoreboard is active
+  useEffect(() => {
+    if (showBigScoreboard) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showBigScoreboard]);
+
   const handleOpenScoreModal = (partai) => {
     setActiveScoreMatch(partai);
     setModalMeja(partai.meja || 'Meja 1');
@@ -540,7 +553,7 @@ const FriendlyMatchDetail = () => {
       </div>
 
       {/* SEKSI STATUS & PERTANDINGAN DI MASING-MASING MEJA */}
-      <div className="panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+      <div className="panel no-print" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -1344,15 +1357,17 @@ const FriendlyMatchDetail = () => {
       )}
 
       {/* ================= MODAL FULLSCREEN BIG SCOREBOARD (TV / PROJECTOR VIEW) ================= */}
-      {showBigScoreboard && (
+      {showBigScoreboard && createPortal(
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
+          width: '100vw',
+          height: '100vh',
           background: 'radial-gradient(ellipse at center, #111827 0%, #030712 100%)',
-          zIndex: 9999,
+          zIndex: 9999999,
           display: 'flex',
           flexDirection: 'column',
           padding: '2rem',
@@ -1612,7 +1627,8 @@ const FriendlyMatchDetail = () => {
               })}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
