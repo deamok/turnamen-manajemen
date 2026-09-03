@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPersahabatanById, updatePersahabatan, deletePersahabatan, getPemain } from '../utils/storage';
+import { getPersahabatanById, updatePersahabatan, deletePersahabatan, getPemain, ensurePemainRegistered } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { formatTanggal, generateId } from '../utils/helpers';
 import { tentukanPemenang } from '../utils/tournament';
@@ -185,6 +185,12 @@ const FriendlyMatchDetail = () => {
     };
 
     try {
+      // Auto-register new players to Member list
+      await ensurePemainRegistered([
+        { nama: newPemainANama, namaPTM: matchData.ptmA?.nama || '' },
+        { nama: newPemainBNama, namaPTM: matchData.ptmB?.nama || '' }
+      ], currentUser);
+
       await updatePersahabatan(matchData.id, updatedData);
       setMatchData(updatedData);
       setShowAddPartaiModal(false);
@@ -244,6 +250,12 @@ const FriendlyMatchDetail = () => {
     };
 
     try {
+      // Auto-register any new players to Member list
+      await ensurePemainRegistered([
+        { nama: editMatchModal.pemainA?.nama, namaPTM: matchData.ptmA?.nama || '' },
+        { nama: editMatchModal.pemainB?.nama, namaPTM: matchData.ptmB?.nama || '' }
+      ], currentUser);
+
       await updatePersahabatan(matchData.id, updatedData);
       setMatchData(updatedData);
       setEditMatchModal(null);
@@ -276,6 +288,30 @@ const FriendlyMatchDetail = () => {
     { length: Math.max(1, parseInt(totalTables) || 1) },
     (_, i) => `Meja ${i + 1}`
   );
+
+  // Helper to lookup rubber info from pemainList
+  const getPlayerRubberInfo = (nama) => {
+    if (!nama || !pemainList || pemainList.length === 0) return [];
+    const rawNames = typeof nama === 'string' && nama.includes('/') ? nama.split('/') : [nama];
+    
+    return rawNames.map(rn => {
+      const clean = (rn || '').trim();
+      if (!clean) return null;
+      const found = pemainList.find(p => (p.nama || p.name || '').trim().toLowerCase() === clean.toLowerCase());
+      if (found) {
+        return {
+          nama: clean,
+          fh: found.karetForehand || 'Normal',
+          bh: found.karetBackhand || 'Normal'
+        };
+      }
+      return {
+        nama: clean,
+        fh: 'Normal',
+        bh: 'Normal'
+      };
+    }).filter(Boolean);
+  };
 
   // Live modal winner calculation
   const currentValidScoresModal = scores
@@ -503,6 +539,195 @@ const FriendlyMatchDetail = () => {
         )}
       </div>
 
+      {/* SEKSI STATUS & PERTANDINGAN DI MASING-MASING MEJA */}
+      <div className="panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.2rem',
+          borderBottom: '1px solid var(--border-light)',
+          paddingBottom: '0.75rem',
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🏓</span> Status Pertandingan di Masing-Masing Meja ({tableOptions.length} Meja)
+          </h3>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            Menampilkan partai yang sedang berlangsung & antrean per meja
+          </span>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(auto-fit, minmax(${tableOptions.length > 2 ? '300px' : '360px'}, 1fr))`,
+          gap: '1.2rem'
+        }}>
+          {tableOptions.map(tableName => {
+            const tablePartai = (matchData.partai || []).filter(p => (p.meja || 'Meja 1') === tableName);
+            const currentActive = tablePartai.find(p => !p.selesai) || tablePartai[tablePartai.length - 1];
+            const finishedCount = tablePartai.filter(p => p.selesai).length;
+
+            return (
+              <div
+                key={tableName}
+                style={{
+                  background: 'var(--bg-surface-elevated)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+                  padding: '1.2rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.8rem'
+                }}
+              >
+                {/* Header Meja */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid var(--border-light)',
+                  paddingBottom: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🏓</span>
+                    <strong style={{ fontSize: '1.1rem', color: 'var(--primary-color)' }}>{tableName}</strong>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    background: 'rgba(255,255,255,0.06)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    {finishedCount}/{tablePartai.length} Selesai
+                  </span>
+                </div>
+
+                {/* Partai Aktif / Berlangsung di Meja ini */}
+                {currentActive ? (
+                  <div style={{
+                    background: currentActive.selesai ? 'rgba(16, 185, 129, 0.06)' : 'rgba(0, 200, 255, 0.06)',
+                    border: currentActive.selesai ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(0, 200, 255, 0.3)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.9rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                        Partai #{currentActive.nomor} ({currentActive.tipe === 'Single' ? 'Tunggal' : 'Ganda'})
+                      </span>
+                      <span style={{
+                        fontWeight: 'bold',
+                        color: currentActive.selesai ? 'var(--success-color)' : 'var(--warning-color)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        {currentActive.selesai ? '✓ SELESAI' : '🔴 SEDANG MAIN'}
+                        {currentActive.jam && ` • 🕒 ${currentActive.jam}`}
+                      </span>
+                    </div>
+
+                    {/* Matchup Pemain */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '8px' }}>
+                      <div>
+                        <strong style={{ fontSize: '0.95rem', color: currentActive.pemenang === 'ptmA' ? 'var(--primary-color)' : 'var(--text-primary)' }}>
+                          {currentActive.pemainA?.nama || 'Tim A'}
+                        </strong>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{ptmAName}</div>
+                        {/* Rubber info */}
+                        <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', marginTop: '2px' }}>
+                          {getPlayerRubberInfo(currentActive.pemainA?.nama).map((r, i) => (
+                            <span key={i} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', padding: '0 4px', borderRadius: '3px', color: 'var(--text-secondary)' }}>
+                              FH:{r.fh} BH:{r.bh}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'center', padding: '0 6px' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: '800', fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+                          {(() => {
+                            let p1 = 0, p2 = 0;
+                            (currentActive.skor || []).forEach(s => {
+                              if (s[0] > s[1]) p1++;
+                              else if (s[1] > s[0]) p2++;
+                            });
+                            return currentActive.skor?.length > 0 ? `${p1} - ${p2}` : 'VS';
+                          })()}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <strong style={{ fontSize: '0.95rem', color: currentActive.pemenang === 'ptmB' ? 'var(--secondary-color)' : 'var(--text-primary)' }}>
+                          {currentActive.pemainB?.nama || 'Tim B'}
+                        </strong>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{ptmBName}</div>
+                        {/* Rubber info */}
+                        <div style={{ display: 'flex', gap: '2px', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '2px' }}>
+                          {getPlayerRubberInfo(currentActive.pemainB?.nama).map((r, i) => (
+                            <span key={i} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', padding: '0 4px', borderRadius: '3px', color: 'var(--text-secondary)' }}>
+                              FH:{r.fh} BH:{r.bh}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center', padding: '10px' }}>
+                    Belum ada partai di meja ini
+                  </div>
+                )}
+
+                {/* Antrean / Riwayat Partai Lain di Meja Ini */}
+                {tablePartai.length > 1 && (
+                  <div style={{ marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Jadwal / Antrean Partai ({tablePartai.length} partai):
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '130px', overflowY: 'auto' }}>
+                      {tablePartai.map(p => {
+                        let p1 = 0, p2 = 0;
+                        (p.skor || []).forEach(s => {
+                          if (s[0] > s[1]) p1++;
+                          else if (s[1] > s[0]) p2++;
+                        });
+                        const isCurrent = currentActive && currentActive.id === p.id;
+                        return (
+                          <div
+                            key={p.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              fontSize: '0.75rem',
+                              padding: '3px 6px',
+                              borderRadius: '4px',
+                              background: isCurrent ? 'rgba(0, 200, 255, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                              border: isCurrent ? '1px solid rgba(0, 200, 255, 0.3)' : '1px solid transparent'
+                            }}
+                          >
+                            <span style={{ color: p.selesai ? 'var(--success-color)' : isCurrent ? 'var(--primary-color)' : 'var(--text-secondary)' }}>
+                              #{p.nomor} {p.pemainA?.nama} vs {p.pemainB?.nama}
+                            </span>
+                            <span style={{ fontWeight: 'bold', color: p.selesai ? 'var(--success-color)' : 'var(--warning-color)' }}>
+                              {p.selesai ? `${p1}-${p2} ✓` : (p.jam ? `🕒 ${p.jam}` : 'Antre')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* SUSUNAN & HASIL PARTAI */}
       <div className="panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
         <div style={{
@@ -638,6 +863,37 @@ const FriendlyMatchDetail = () => {
                         {partai.pemainA?.nama || 'Pemain Tim A'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ptmAName}</div>
+                      
+                      {/* Info Karet Pemain A */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                        {getPlayerRubberInfo(partai.pemainA?.nama).map((r, rIdx) => (
+                          <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            {partai.tipe === 'Double' && (
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{r.nama}:</span>
+                            )}
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              background: r.fh !== 'Normal' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              color: r.fh !== 'Normal' ? 'var(--warning-color)' : 'var(--text-secondary)',
+                              border: r.fh !== 'Normal' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-light)'
+                            }}>
+                              FH: {r.fh}
+                            </span>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              background: r.bh !== 'Normal' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              color: r.bh !== 'Normal' ? 'var(--secondary-color)' : 'var(--text-secondary)',
+                              border: r.bh !== 'Normal' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid var(--border-light)'
+                            }}>
+                              BH: {r.bh}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -710,6 +966,37 @@ const FriendlyMatchDetail = () => {
                         {partai.pemainB?.nama || 'Pemain Tim B'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ptmBName}</div>
+
+                      {/* Info Karet Pemain B */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', alignItems: 'flex-end' }}>
+                        {getPlayerRubberInfo(partai.pemainB?.nama).map((r, rIdx) => (
+                          <div key={rIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {partai.tipe === 'Double' && (
+                              <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{r.nama}:</span>
+                            )}
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              background: r.fh !== 'Normal' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              color: r.fh !== 'Normal' ? 'var(--warning-color)' : 'var(--text-secondary)',
+                              border: r.fh !== 'Normal' ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid var(--border-light)'
+                            }}>
+                              FH: {r.fh}
+                            </span>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              background: r.bh !== 'Normal' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              color: r.bh !== 'Normal' ? 'var(--secondary-color)' : 'var(--text-secondary)',
+                              border: r.bh !== 'Normal' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid var(--border-light)'
+                            }}>
+                              BH: {r.bh}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <span style={{ fontSize: '1.2rem' }}>{winnerB ? '🏆' : '🏓'}</span>
                   </div>
@@ -783,6 +1070,18 @@ const FriendlyMatchDetail = () => {
                     {activeScoreMatch.pemainA?.nama || 'Tim A'}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ptmAName}</div>
+                  
+                  {/* Rubber info in modal */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', alignItems: 'center' }}>
+                    {getPlayerRubberInfo(activeScoreMatch.pemainA?.nama).map((r, rIdx) => (
+                      <span key={rIdx} style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                        {r.nama !== activeScoreMatch.pemainA?.nama && <strong style={{ color: 'var(--text-primary)' }}>{r.nama}: </strong>}
+                        <span style={{ color: r.fh !== 'Normal' ? 'var(--warning-color)' : 'var(--text-secondary)' }}>FH({r.fh})</span>{' '}
+                        <span style={{ color: r.bh !== 'Normal' ? 'var(--secondary-color)' : 'var(--text-secondary)' }}>BH({r.bh})</span>
+                      </span>
+                    ))}
+                  </div>
+
                   <div style={{ fontSize: '1.6rem', fontWeight: 'bold', marginTop: '4px', color: 'var(--primary-color)' }}>
                     {setsWon1Modal}
                   </div>
@@ -801,6 +1100,18 @@ const FriendlyMatchDetail = () => {
                     {activeScoreMatch.pemainB?.nama || 'Tim B'}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ptmBName}</div>
+
+                  {/* Rubber info in modal */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px', alignItems: 'center' }}>
+                    {getPlayerRubberInfo(activeScoreMatch.pemainB?.nama).map((r, rIdx) => (
+                      <span key={rIdx} style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                        {r.nama !== activeScoreMatch.pemainB?.nama && <strong style={{ color: 'var(--text-primary)' }}>{r.nama}: </strong>}
+                        <span style={{ color: r.fh !== 'Normal' ? 'var(--warning-color)' : 'var(--text-secondary)' }}>FH({r.fh})</span>{' '}
+                        <span style={{ color: r.bh !== 'Normal' ? 'var(--secondary-color)' : 'var(--text-secondary)' }}>BH({r.bh})</span>
+                      </span>
+                    ))}
+                  </div>
+
                   <div style={{ fontSize: '1.6rem', fontWeight: 'bold', marginTop: '4px', color: 'var(--secondary-color)' }}>
                     {setsWon2Modal}
                   </div>
@@ -1132,51 +1443,174 @@ const FriendlyMatchDetail = () => {
             </div>
           </div>
 
-          {/* Quick List of Parties in Big View */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '1rem'
-          }}>
-            {matchData.partai?.map(p => {
-              let p1Sets = 0, p2Sets = 0;
-              if (p.skor && p.skor.length > 0) {
-                p.skor.forEach(s => {
-                  if (s[0] > s[1]) p1Sets++;
-                  else if (s[1] > s[0]) p2Sets++;
-                });
-              }
+          {/* Info Pertandingan di Masing-Masing Meja (TV / Projector View) */}
+          <div style={{ marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.4rem', color: '#38bdf8', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🏓</span> Info Pertandingan Tiap Meja
+            </h2>
 
-              return (
-                <div
-                  key={p.id}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '0.75rem',
-                    padding: '1rem',
-                    border: p.selesai ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '6px' }}>
-                    <span>Partai #{p.nomor} ({p.tipe === 'Single' ? 'Tunggal' : 'Ganda'})</span>
-                    <span style={{ color: p.selesai ? '#10b981' : '#f59e0b', fontWeight: 'bold' }}>
-                      {p.selesai ? 'SELESAI' : 'PENDING'}
-                    </span>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(auto-fit, minmax(${tableOptions.length > 2 ? '360px' : '480px'}, 1fr))`,
+              gap: '1.5rem'
+            }}>
+              {tableOptions.map(tableName => {
+                const tablePartai = (matchData.partai || []).filter(p => (p.meja || 'Meja 1') === tableName);
+                const currentActive = tablePartai.find(p => !p.selesai) || tablePartai[tablePartai.length - 1];
+                const finishedCount = tablePartai.filter(p => p.selesai).length;
+
+                return (
+                  <div
+                    key={tableName}
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.85)',
+                      borderRadius: '1.25rem',
+                      padding: '1.5rem',
+                      border: '2px solid rgba(56, 189, 248, 0.4)',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem'
+                    }}
+                  >
+                    {/* Header Meja */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '1.6rem' }}>🏓</span>
+                        <span style={{ fontSize: '1.4rem', fontWeight: '800', color: '#38bdf8' }}>{tableName}</span>
+                      </div>
+                      <span style={{
+                        fontSize: '0.9rem',
+                        background: 'rgba(255,255,255,0.1)',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        color: '#94a3b8',
+                        fontWeight: 'bold'
+                      }}>
+                        {finishedCount}/{tablePartai.length} Selesai
+                      </span>
+                    </div>
+
+                    {/* Active / Current Match */}
+                    {currentActive ? (
+                      <div style={{
+                        background: currentActive.selesai ? 'rgba(16, 185, 129, 0.12)' : 'rgba(56, 189, 248, 0.12)',
+                        border: currentActive.selesai ? '2px solid rgba(16, 185, 129, 0.4)' : '2px solid rgba(56, 189, 248, 0.5)',
+                        borderRadius: '1rem',
+                        padding: '1.2rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '10px' }}>
+                          <span style={{ fontWeight: '800', color: '#38bdf8' }}>
+                            Partai #{currentActive.nomor} ({currentActive.tipe === 'Single' ? 'Tunggal' : 'Ganda'})
+                          </span>
+                          <span style={{
+                            fontWeight: 'bold',
+                            color: currentActive.selesai ? '#10b981' : '#f59e0b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            {currentActive.selesai ? '✓ SELESAI' : '🔴 SEDANG MAIN'}
+                            {currentActive.jam && ` • 🕒 ${currentActive.jam}`}
+                          </span>
+                        </div>
+
+                        {/* Player Duel & Score */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '12px' }}>
+                          <div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: '900', color: currentActive.pemenang === 'ptmA' ? '#38bdf8' : '#fff' }}>
+                              {currentActive.pemainA?.nama || 'Tim A'}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{ptmAName}</div>
+                            {/* Rubbers */}
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                              {getPlayerRubberInfo(currentActive.pemainA?.nama).map((r, i) => (
+                                <span key={i} style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: '4px', color: '#e2e8f0' }}>
+                                  FH:{r.fh} BH:{r.bh}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'center', padding: '0 10px' }}>
+                            <div style={{ fontSize: '1.8rem', fontWeight: '900', fontFamily: 'var(--font-display)', color: '#fff' }}>
+                              {(() => {
+                                let p1 = 0, p2 = 0;
+                                (currentActive.skor || []).forEach(s => {
+                                  if (s[0] > s[1]) p1++;
+                                  else if (s[1] > s[0]) p2++;
+                                });
+                                return currentActive.skor?.length > 0 ? `${p1} - ${p2}` : 'VS';
+                              })()}
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: '900', color: currentActive.pemenang === 'ptmB' ? '#c084fc' : '#fff' }}>
+                              {currentActive.pemainB?.nama || 'Tim B'}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{ptmBName}</div>
+                            {/* Rubbers */}
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '4px' }}>
+                              {getPlayerRubberInfo(currentActive.pemainB?.nama).map((r, i) => (
+                                <span key={i} style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: '4px', color: '#e2e8f0' }}>
+                                  FH:{r.fh} BH:{r.bh}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.9rem', color: '#94a3b8', textAlign: 'center', padding: '15px' }}>
+                        Tidak ada partai di meja ini
+                      </div>
+                    )}
+
+                    {/* Antrean Partai di Meja Ini */}
+                    {tablePartai.length > 1 && (
+                      <div>
+                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '6px', fontWeight: 'bold' }}>
+                          Daftar & Antrean Partai di {tableName}:
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                          {tablePartai.map(p => {
+                            let p1 = 0, p2 = 0;
+                            (p.skor || []).forEach(s => {
+                              if (s[0] > s[1]) p1++;
+                              else if (s[1] > s[0]) p2++;
+                            });
+                            const isCurrent = currentActive && currentActive.id === p.id;
+                            return (
+                              <div
+                                key={p.id}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  fontSize: '0.82rem',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  background: isCurrent ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                                  border: isCurrent ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent'
+                                }}
+                              >
+                                <span style={{ color: p.selesai ? '#10b981' : isCurrent ? '#38bdf8' : '#cbd5e1' }}>
+                                  #{p.nomor} {p.pemainA?.nama} vs {p.pemainB?.nama}
+                                </span>
+                                <span style={{ fontWeight: 'bold', color: p.selesai ? '#10b981' : '#f59e0b' }}>
+                                  {p.selesai ? `${p1} - ${p2} ✓` : (p.jam ? `🕒 ${p.jam}` : 'Antre')}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 'bold', color: p.pemenang === 'ptmA' ? '#38bdf8' : '#fff' }}>
-                      {p.pemainA?.nama || 'Tim A'}
-                    </div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold', padding: '0 8px' }}>
-                      {p.selesai ? `${p1Sets} - ${p2Sets}` : 'vs'}
-                    </div>
-                    <div style={{ fontSize: '1rem', fontWeight: 'bold', color: p.pemenang === 'ptmB' ? '#c084fc' : '#fff' }}>
-                      {p.pemainB?.nama || 'Tim B'}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

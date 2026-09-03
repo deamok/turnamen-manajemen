@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPemain, addPersahabatan } from '../utils/storage';
+import { getPemain, addPersahabatan, ensurePemainRegistered } from '../utils/storage';
 import { generateId } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -249,6 +249,24 @@ const CreateFriendlyMatch = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+
+      // Auto-register new players to Member list (without duplicates)
+      const playersToRegister = [];
+      partaiList.forEach(p => {
+        if (p.tipe === 'Single') {
+          if (p.pemainA?.nama) playersToRegister.push({ nama: p.pemainA.nama, namaPTM: ptmANama.trim() });
+          if (p.pemainB?.nama) playersToRegister.push({ nama: p.pemainB.nama, namaPTM: ptmBNama.trim() });
+        } else {
+          if (p.pemainA?.pemain1?.nama) playersToRegister.push({ nama: p.pemainA.pemain1.nama, namaPTM: ptmANama.trim() });
+          if (p.pemainA?.pemain2?.nama) playersToRegister.push({ nama: p.pemainA.pemain2.nama, namaPTM: ptmANama.trim() });
+          if (p.pemainA?.nama) playersToRegister.push({ nama: p.pemainA.nama, namaPTM: ptmANama.trim() });
+
+          if (p.pemainB?.pemain1?.nama) playersToRegister.push({ nama: p.pemainB.pemain1.nama, namaPTM: ptmBNama.trim() });
+          if (p.pemainB?.pemain2?.nama) playersToRegister.push({ nama: p.pemainB.pemain2.nama, namaPTM: ptmBNama.trim() });
+          if (p.pemainB?.nama) playersToRegister.push({ nama: p.pemainB.nama, namaPTM: ptmBNama.trim() });
+        }
+      });
+      await ensurePemainRegistered(playersToRegister, currentUser);
 
       await addPersahabatan(payload);
       navigate(`/persahabatan/${matchId}`);

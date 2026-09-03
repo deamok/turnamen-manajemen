@@ -99,6 +99,89 @@ export async function deletePemain(id) {
   return await getPemain();
 }
 
+/**
+ * Otomatis mendaftarkan pemain baru ke koleksi Member (users) jika belum ada (mencegah duplikasi)
+ */
+export async function ensurePemainRegistered(playerList, currentUser) {
+  if (!playerList || playerList.length === 0) return [];
+  try {
+    const existingPlayers = await getPemain();
+
+    // Map existing normalized player names
+    const existingMap = new Map();
+    existingPlayers.forEach(p => {
+      const name = (p.nama || p.name || '').trim().toLowerCase();
+      if (name) {
+        existingMap.set(name, p);
+      }
+    });
+
+    const toAdd = [];
+    const addedInBatch = new Set();
+
+    playerList.forEach(item => {
+      if (!item || !item.nama) return;
+
+      // Handle split if composite name, e.g. "Budi / Joko"
+      const rawNames = typeof item.nama === 'string' && item.nama.includes('/')
+        ? item.nama.split('/')
+        : [item.nama];
+
+      rawNames.forEach(rawName => {
+        const cleanName = (rawName || '').trim();
+        if (!cleanName) return;
+
+        // Skip generic placeholder names
+        if (/^pemain tim [ab]$/i.test(cleanName) || /^ganda tim [ab]$/i.test(cleanName)) {
+          return;
+        }
+
+        const normalized = cleanName.toLowerCase();
+        if (!existingMap.has(normalized) && !addedInBatch.has(normalized)) {
+          addedInBatch.add(normalized);
+          const cleanPTM = (item.namaPTM || '').trim();
+          const newPlayer = {
+            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+            nama: cleanName,
+            namaPTM: cleanPTM,
+            ownerPTM: cleanPTM,
+            ownerUid: currentUser?.uid || '',
+            role: 'player',
+            noHP: '',
+            divisi: '5',
+            karetForehand: '',
+            karetBackhand: '',
+            pts: 0,
+            statsPTS: {
+              ikutSingle: 0,
+              ikutDouble: 0,
+              setMenang: 0,
+              lolosPool: 0,
+              juara: 0,
+              finalist: 0,
+              semifinalist: 0,
+              quarterfinalist: 0
+            },
+            createdAt: new Date().toISOString()
+          };
+          toAdd.push(newPlayer);
+          existingMap.set(normalized, newPlayer);
+        }
+      });
+    });
+
+    if (toAdd.length > 0) {
+      const promises = toAdd.map(p => setDoc(doc(db, PEMAIN_COLLECTION, p.id), p));
+      await Promise.all(promises);
+      console.log(`[Auto-Register Member] Menambahkan ${toAdd.length} pemain baru ke daftar Member:`, toAdd.map(p => `${p.nama} (${p.namaPTM})`));
+    }
+    return toAdd;
+  } catch (err) {
+    console.error("Error auto-registering players:", err);
+    return [];
+  }
+}
+
 
 export async function getTurnamen() {
   const querySnapshot = await getDocs(collection(db, TURNAMEN_COLLECTION));
