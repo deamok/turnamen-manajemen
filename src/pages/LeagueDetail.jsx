@@ -1280,20 +1280,7 @@ const LeagueDetail = () => {
                           <tr key={pemain.id || index}>
                             <td>{index + 1}</td>
                             <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <strong>{pemain.nama}</strong>
-                                <span style={{
-                                  padding: '2px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  background: 'rgba(0, 200, 255, 0.15)',
-                                  color: 'var(--primary-color)',
-                                  fontWeight: 'bold',
-                                  border: '1px solid rgba(0, 200, 255, 0.3)'
-                                }}>
-                                  🏆 Liga
-                                </span>
-                              </div>
+                              <strong>{pemain.nama}</strong>
                             </td>
                             <td>{noHP}</td>
                             <td>
