@@ -125,6 +125,7 @@ const Dashboard = () => {
         {(isAdmin || isSuperAdmin) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px' }}>
             <button className="btn btn-primary" onClick={() => navigate('/turnamen/baru')}>🏆 Buat Turnamen Baru</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/liga/baru')}>🏆 Buat Liga Baru</button>
             <button className="btn btn-secondary" onClick={() => navigate('/persahabatan/baru')}>🤝 Buat Laga Persahabatan</button>
             <button className="btn btn-secondary" onClick={() => navigate('/pemain')}>👥 Kelola Pemain</button>
           </div>

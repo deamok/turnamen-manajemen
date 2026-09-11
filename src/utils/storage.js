@@ -496,3 +496,58 @@ export async function deletePersahabatan(id) {
   return await getPersahabatan();
 }
 
+// ================= LIGA (LEAGUE SYSTEM) =================
+const LIGA_COLLECTION = 'liga';
+
+function ligaToFirestore(liga) {
+  const l = JSON.parse(JSON.stringify(liga));
+  if (l.jadwal) {
+    l.jadwal.forEach(pekan => {
+      pekan.pertandingan?.forEach(m => convertMatchSkor(m, 'toFirestore'));
+    });
+  }
+  return l;
+}
+
+function ligaFromFirestore(liga) {
+  if (!liga) return null;
+  const l = JSON.parse(JSON.stringify(liga));
+  if (l.jadwal) {
+    l.jadwal.forEach(pekan => {
+      pekan.pertandingan?.forEach(m => convertMatchSkor(m, 'fromFirestore'));
+    });
+  }
+  return l;
+}
+
+export async function getLiga() {
+  const querySnapshot = await getDocs(collection(db, LIGA_COLLECTION));
+  return querySnapshot.docs.map(d => ligaFromFirestore({ id: d.id, ...d.data() }));
+}
+
+export async function getLigaById(id) {
+  const docRef = doc(db, LIGA_COLLECTION, id);
+  const snap = await getDoc(docRef);
+  if (snap.exists()) {
+    return ligaFromFirestore({ id: snap.id, ...snap.data() });
+  }
+  return null;
+}
+
+export async function addLiga(liga) {
+  const id = liga.id;
+  await setDoc(doc(db, LIGA_COLLECTION, id), ligaToFirestore(liga));
+  return await getLiga();
+}
+
+export async function updateLiga(id, data) {
+  await setDoc(doc(db, LIGA_COLLECTION, id), ligaToFirestore(data));
+  return await getLiga();
+}
+
+export async function deleteLiga(id) {
+  await deleteDoc(doc(db, LIGA_COLLECTION, id));
+  return await getLiga();
+}
+
+
