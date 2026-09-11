@@ -274,17 +274,29 @@ export function hitungKlasemenLiga(pesertaList, jadwal = [], options = {}) {
   });
 
   // Sort Standings:
-  // 1. Poin Liga (desc)
+  // 1. Poin Liga (PTS) (desc)
   // 2. Selisih Set (desc)
   // 3. Selisih Poin (desc)
   // 4. Set Menang (desc)
   // 5. Nama (asc)
   standingsArray.sort((a, b) => {
-    if (b.poin !== a.poin) return b.poin - a.poin;
-    if (b.selisihSet !== a.selisihSet) return b.selisihSet - a.selisihSet;
-    if (b.selisihPoin !== a.selisihPoin) return b.selisihPoin - a.selisihPoin;
-    if (b.setMenang !== a.setMenang) return b.setMenang - a.setMenang;
-    return a.nama.localeCompare(b.nama);
+    const ptsA = Number(a.poin || 0);
+    const ptsB = Number(b.poin || 0);
+    if (ptsB !== ptsA) return ptsB - ptsA;
+
+    const setDiffA = Number(a.selisihSet !== undefined ? a.selisihSet : (Number(a.setMenang || 0) - Number(a.setKalah || 0)));
+    const setDiffB = Number(b.selisihSet !== undefined ? b.selisihSet : (Number(b.setMenang || 0) - Number(b.setKalah || 0)));
+    if (setDiffB !== setDiffA) return setDiffB - setDiffA;
+
+    const ptDiffA = Number(a.selisihPoin !== undefined ? a.selisihPoin : (Number(a.poinMenang || 0) - Number(a.poinKalah || 0)));
+    const ptDiffB = Number(b.selisihPoin !== undefined ? b.selisihPoin : (Number(b.poinMenang || 0) - Number(b.poinKalah || 0)));
+    if (ptDiffB !== ptDiffA) return ptDiffB - ptDiffA;
+
+    const setWonA = Number(a.setMenang || 0);
+    const setWonB = Number(b.setMenang || 0);
+    if (setWonB !== setWonA) return setWonB - setWonA;
+
+    return (a.nama || '').localeCompare(b.nama || '', undefined, { sensitivity: 'base' });
   });
 
   return standingsArray.map((item, index) => ({

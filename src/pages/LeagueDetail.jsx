@@ -1044,7 +1044,25 @@ const LeagueDetail = () => {
               </tr>
             </thead>
             <tbody>
-              {(league.klasemen || []).map((row, idx) => {
+              {[...(league.klasemen || [])].sort((a, b) => {
+                const ptsA = Number(a.poin || 0);
+                const ptsB = Number(b.poin || 0);
+                if (ptsB !== ptsA) return ptsB - ptsA;
+
+                const setDiffA = Number(a.selisihSet !== undefined ? a.selisihSet : (Number(a.setMenang || 0) - Number(a.setKalah || 0)));
+                const setDiffB = Number(b.selisihSet !== undefined ? b.selisihSet : (Number(b.setMenang || 0) - Number(b.setKalah || 0)));
+                if (setDiffB !== setDiffA) return setDiffB - setDiffA;
+
+                const ptDiffA = Number(a.selisihPoin !== undefined ? a.selisihPoin : (Number(a.poinMenang || 0) - Number(a.poinKalah || 0)));
+                const ptDiffB = Number(b.selisihPoin !== undefined ? b.selisihPoin : (Number(b.poinMenang || 0) - Number(b.poinKalah || 0)));
+                if (ptDiffB !== ptDiffA) return ptDiffB - ptDiffA;
+
+                const setWonA = Number(a.setMenang || 0);
+                const setWonB = Number(b.setMenang || 0);
+                if (setWonB !== setWonA) return setWonB - setWonA;
+
+                return (a.nama || '').localeCompare(b.nama || '', undefined, { sensitivity: 'base' });
+              }).map((row, idx) => {
                 let posBadge = `${idx + 1}`;
                 let rowBg = 'transparent';
 
