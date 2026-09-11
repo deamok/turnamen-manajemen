@@ -18,7 +18,7 @@ const CreateLeague = () => {
     formatSet: 'best_of_5', // 'best_of_5' (Default Best of 5)
     poinMenang: 3, // 3 atau 2
     poinKalah: 0, // 0 atau 1
-    tanggalMulai: new Date().toISOString().split('T')[0],
+    tanggalMulai: '2026-09-13', // Pekan 1: 13 s/d 19 September 2026
     intervalHari: 7, // 7 hari = mingguan
     jamDefault: 'Bebas',
     jumlahMeja: 2 // Default 2 Meja
@@ -313,14 +313,14 @@ const CreateLeague = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>Sistem Putaran</label>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '6px' }}>Pertemuan Antar Pemain</label>
                 <select
                   className="input"
                   value={formData.putaran}
                   onChange={e => setFormData({ ...formData, putaran: Number(e.target.value) })}
                 >
-                  <option value={1}>➡️ 1 Putaran (Single Round Robin)</option>
-                  <option value={2}>🔄 2 Putaran (Home & Away / Timbal Balik)</option>
+                  <option value={1}>1x Bertemu (Setiap Pemain Tanding 1 Kali - Standar)</option>
+                  <option value={2}>2x Bertemu (Tanding Ulang / Home & Away)</option>
                 </select>
               </div>
 

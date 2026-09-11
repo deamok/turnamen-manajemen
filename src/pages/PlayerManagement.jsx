@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPemainByScope, addPemain, updatePemain, deletePemain, syncFriendlyMatchPlayersToMembers } from '../utils/storage';
+import { getPemainByScope, addPemain, updatePemain, deletePemain, syncFriendlyMatchPlayersToMembers, syncMemberToLeagues, syncAllMembersWithAllLeagues, recalculatePTS } from '../utils/storage';
 import { generateId } from '../utils/helpers';
 import PlayerForm from '../components/PlayerForm';
 import PlayerTable from '../components/PlayerTable';
@@ -18,6 +18,10 @@ const PlayerManagement = () => {
     try {
       // Sinkronisasi otomatis pemain dari laga persahabatan ke daftar Member
       await syncFriendlyMatchPlayersToMembers(currentUser);
+      // Sinkronisasi data member dengan seluruh liga
+      await syncAllMembersWithAllLeagues();
+      // Hitung ulang seluruh PTS (Liga + Turnamen = Total)
+      await recalculatePTS();
 
       const data = await getPemainByScope({
         isSuperAdmin,
@@ -43,6 +47,7 @@ const PlayerManagement = () => {
       ownerUid: currentUser?.uid || '',
       ownerPTM: userPTM || data.namaPTM || '',
       pts: 0,
+      ikutLiga: !!data.ikutLiga,
       statsPTS: {
         ikutSingle: 0,
         ikutDouble: 0,
@@ -56,6 +61,9 @@ const PlayerManagement = () => {
       createdAt: new Date().toISOString()
     };
     await addPemain(pemainData);
+    if (pemainData.ikutLiga) {
+      await syncMemberToLeagues(pemainData);
+    }
     await loadPemain();
     setShowForm(false);
   };
@@ -66,8 +74,10 @@ const PlayerManagement = () => {
       ...data,
       ownerUid: editingPemain.ownerUid || currentUser?.uid || '',
       ownerPTM: editingPemain.ownerPTM || userPTM || '',
+      ikutLiga: !!data.ikutLiga
     };
     await updatePemain(editingPemain.id, updatedData);
+    await syncMemberToLeagues({ id: editingPemain.id, ...updatedData });
     await loadPemain();
     setEditingPemain(null);
     setShowForm(false);
@@ -75,7 +85,11 @@ const PlayerManagement = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus pemain ini?')) {
+      const deletedPlayer = pemainList.find(p => p.id === id);
       await deletePemain(id);
+      if (deletedPlayer) {
+        await syncMemberToLeagues(deletedPlayer, true);
+      }
       await loadPemain();
     }
   };

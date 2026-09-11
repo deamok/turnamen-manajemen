@@ -319,16 +319,18 @@ const LeagueList = () => {
                       }}>
                         {league.tipe === 'Double' ? '👥 Ganda' : '👤 Tunggal'}
                       </span>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        background: 'rgba(168, 85, 247, 0.12)',
-                        color: 'var(--secondary-color)',
-                        border: '1px solid rgba(168, 85, 247, 0.25)'
-                      }}>
-                        {league.putaran === 2 ? '🔄 2 Putaran' : '➡️ 1 Putaran'}
-                      </span>
+                      {league.putaran === 2 && (
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          background: 'rgba(168, 85, 247, 0.12)',
+                          color: 'var(--secondary-color)',
+                          border: '1px solid rgba(168, 85, 247, 0.25)'
+                        }}>
+                          🔄 2 Putaran
+                        </span>
+                      )}
                     </div>
 
                     {canManageThis && (

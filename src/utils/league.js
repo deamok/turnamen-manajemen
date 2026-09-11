@@ -1,14 +1,14 @@
-import { generateId, acakArray } from './helpers';
+import { generateId, acakArray, formatRentangTanggal } from './helpers';
 import { tentukanPemenang } from './tournament';
 
 /**
  * Generate Berger / Polygon Round Robin Schedule
  * @param {Array} pesertaList - List of participants { id, nama, namaPTM, ... }
- * @param {Object} options - { putaran: 1 | 2, tanggalMulai: 'YYYY-MM-DD', intervalHari: 7 }
+ * @param {Object} options - { putaran: 1 | 2, tanggalMulai: 'YYYY-MM-DD', intervalHari: 7, jumlahMeja: 2, jamDefault: 'Bebas' }
  * @returns {Array} List of weeks/pekan with matches
  */
 export function generateLeagueSchedule(pesertaList, options = {}) {
-  const { putaran = 1, tanggalMulai = '', intervalHari = 7, jumlahMeja = 2, jamDefault = '' } = options;
+  const { putaran = 1, tanggalMulai = '2026-09-13', intervalHari = 7, jumlahMeja = 2, jamDefault = 'Bebas' } = options;
   if (!pesertaList || pesertaList.length < 2) return [];
 
   const participants = [...pesertaList];
@@ -24,7 +24,7 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
   const matchesPerRound = n / 2;
   const jadwal = [];
 
-  const startDate = tanggalMulai ? new Date(tanggalMulai) : new Date();
+  const startDate = tanggalMulai ? new Date(tanggalMulai) : new Date('2026-09-13');
 
   // Berger circle method
   // Fix position 0, rotate positions 1 to n-1
@@ -56,6 +56,7 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
           isBye: true,
           peserta1: activePlayer,
           peserta2: null,
+          wasit: null,
           pemenang: null,
           selesai: true,
           skor: [],
@@ -68,6 +69,7 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
           isBye: false,
           peserta1: home,
           peserta2: away,
+          wasit: null,
           skor: [],
           pemenang: null,
           selesai: false,
@@ -84,17 +86,30 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
 
   // Putaran 1
   for (let r = 0; r < roundPairs.length; r++) {
-    const matchDate = new Date(startDate);
-    matchDate.setDate(startDate.getDate() + (pekanCounter - 1) * intervalHari);
-    const dateStr = matchDate.toISOString().split('T')[0];
+    const startWeekDate = new Date(startDate);
+    startWeekDate.setDate(startDate.getDate() + (pekanCounter - 1) * intervalHari);
+    const startStr = startWeekDate.toISOString().split('T')[0];
+
+    const endWeekDate = new Date(startWeekDate);
+    endWeekDate.setDate(startWeekDate.getDate() + 6);
+    const endStr = endWeekDate.toISOString().split('T')[0];
+
+    const rentang = formatRentangTanggal(startStr, endStr);
 
     jadwal.push({
       id: generateId(),
       pekan: pekanCounter,
-      nama: `Pekan ${pekanCounter} (Putaran 1)`,
+      nama: `Pekan ${pekanCounter}`,
       putaran: 1,
-      tanggal: dateStr,
-      pertandingan: roundPairs[r].map(m => ({ ...m, pekan: pekanCounter }))
+      tanggal: startStr,
+      tanggalMulai: startStr,
+      tanggalSelesai: endStr,
+      rentangTanggal: rentang,
+      pertandingan: roundPairs[r].map(m => ({
+        ...m,
+        pekan: pekanCounter,
+        tanggal: m.tanggal || startStr
+      }))
     });
     pekanCounter++;
   }
@@ -102,16 +117,23 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
   // Putaran 2 (Home & Away - Reverse Fixture)
   if (putaran === 2) {
     for (let r = 0; r < roundPairs.length; r++) {
-      const matchDate = new Date(startDate);
-      matchDate.setDate(startDate.getDate() + (pekanCounter - 1) * intervalHari);
-      const dateStr = matchDate.toISOString().split('T')[0];
+      const startWeekDate = new Date(startDate);
+      startWeekDate.setDate(startDate.getDate() + (pekanCounter - 1) * intervalHari);
+      const startStr = startWeekDate.toISOString().split('T')[0];
+
+      const endWeekDate = new Date(startWeekDate);
+      endWeekDate.setDate(startWeekDate.getDate() + 6);
+      const endStr = endWeekDate.toISOString().split('T')[0];
+
+      const rentang = formatRentangTanggal(startStr, endStr);
 
       const reversedMatches = roundPairs[r].map(m => {
         if (m.isBye) {
           return {
             ...m,
             id: generateId(),
-            pekan: pekanCounter
+            pekan: pekanCounter,
+            tanggal: startStr
           };
         }
         return {
@@ -120,10 +142,12 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
           pekan: pekanCounter,
           peserta1: m.peserta2, // Swap Home/Away
           peserta2: m.peserta1,
+          wasit: null,
           skor: [],
           pemenang: null,
           selesai: false,
           meja: m.meja,
+          tanggal: startStr,
           jam: m.jam,
           catatan: ''
         };
@@ -132,9 +156,12 @@ export function generateLeagueSchedule(pesertaList, options = {}) {
       jadwal.push({
         id: generateId(),
         pekan: pekanCounter,
-        nama: `Pekan ${pekanCounter} (Putaran 2)`,
+        nama: `Pekan ${pekanCounter}`,
         putaran: 2,
-        tanggal: dateStr,
+        tanggal: startStr,
+        tanggalMulai: startStr,
+        tanggalSelesai: endStr,
+        rentangTanggal: rentang,
         pertandingan: reversedMatches
       });
       pekanCounter++;

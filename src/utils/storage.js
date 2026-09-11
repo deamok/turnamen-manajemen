@@ -1,5 +1,6 @@
 import { db } from '../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { hitungKlasemenLiga } from './league';
 
 const PEMAIN_COLLECTION = 'users';
 const TURNAMEN_COLLECTION = 'turnamen';
@@ -243,7 +244,7 @@ export async function deleteTurnamen(id) {
   return await getTurnamen();
 }
 
-// Automatically recalculate PTS for all users based on all tournament history
+// Automatically recalculate PTS for all users based on all tournament and league history
 export async function recalculatePTS() {
   try {
     const pemainSnapshot = await getDocs(collection(db, PEMAIN_COLLECTION));
@@ -252,10 +253,21 @@ export async function recalculatePTS() {
     const tournamentsSnapshot = await getDocs(collection(db, TURNAMEN_COLLECTION));
     const tournaments = tournamentsSnapshot.docs.map(doc => fromFirestore({ id: doc.id, ...doc.data() }));
 
+    let leagues = [];
+    try {
+      const leaguesSnapshot = await getDocs(collection(db, LIGA_COLLECTION));
+      leagues = leaguesSnapshot.docs.map(doc => ligaFromFirestore({ id: doc.id, ...doc.data() }));
+    } catch (lErr) {
+      console.warn("[PTS] Warning reading leagues:", lErr);
+    }
+
     const userPts = {};
     pemainList.forEach(u => {
       userPts[u.id] = {
         pts: 0,
+        ptsTotal: 0,
+        ptsTurnamen: 0,
+        ptsLiga: 0,
         ikutSingle: 0,
         ikutDouble: 0,
         setMenang: 0,
@@ -263,7 +275,10 @@ export async function recalculatePTS() {
         juara: 0,
         finalist: 0,
         semifinalist: 0,
-        quarterfinalist: 0
+        quarterfinalist: 0,
+        ligaMain: 0,
+        ligaMenang: 0,
+        ligaKalah: 0
       };
     });
 
@@ -298,12 +313,13 @@ export async function recalculatePTS() {
       return false;
     };
 
+    // 1. Calculate PTS Turnamen
     tournaments.forEach(t => {
       const hasPeserta = t.peserta || [];
       pemainList.forEach(user => {
         const participated = hasPeserta.some(p => isUserInParticipant(p, user.id));
         if (participated) {
-          userPts[user.id].pts += 10; // +10 PTS for participation
+          userPts[user.id].ptsTurnamen += 10; // +10 PTS for participation
           if (t.tipe === 'Double') {
             userPts[user.id].ikutDouble += 1;
           } else {
@@ -324,14 +340,14 @@ export async function recalculatePTS() {
                   if (s[0] > s[1]) sets++;
                 });
                 userPts[user.id].setMenang += sets;
-                userPts[user.id].pts += sets * 1; // +1 PTS per set won
+                userPts[user.id].ptsTurnamen += sets * 1; // +1 PTS per set won
               } else if (isUserInParticipant(m.peserta2, user.id)) {
                 let sets = 0;
                 m.skor.forEach(s => {
                   if (s[1] > s[0]) sets++;
                 });
                 userPts[user.id].setMenang += sets;
-                userPts[user.id].pts += sets * 1; // +1 PTS per set won
+                userPts[user.id].ptsTurnamen += sets * 1; // +1 PTS per set won
               }
             });
           }
@@ -350,14 +366,14 @@ export async function recalculatePTS() {
                     if (s[0] > s[1]) sets++;
                   });
                   userPts[user.id].setMenang += sets;
-                  userPts[user.id].pts += sets * 1;
+                  userPts[user.id].ptsTurnamen += sets * 1;
                 } else if (isUserInParticipant(m.peserta2, user.id)) {
                   let sets = 0;
                   m.skor.forEach(s => {
                     if (s[1] > s[0]) sets++;
                   });
                   userPts[user.id].setMenang += sets;
-                  userPts[user.id].pts += sets * 1;
+                  userPts[user.id].ptsTurnamen += sets * 1;
                 }
               });
             }
@@ -368,7 +384,7 @@ export async function recalculatePTS() {
               const inRound = matches.some(m => isUserInParticipant(m.peserta1, user.id) || isUserInParticipant(m.peserta2, user.id));
               if (inRound) {
                 userPts[user.id].lolosPool += 1;
-                userPts[user.id].pts += 15; // +15 PTS for passing pool stage
+                userPts[user.id].ptsTurnamen += 15; // +15 PTS for passing pool stage
               }
             });
           }
@@ -379,13 +395,13 @@ export async function recalculatePTS() {
             if (inRound) {
               if (roundName === 'Perempat Final') {
                 userPts[user.id].quarterfinalist += 1;
-                userPts[user.id].pts += 10;
+                userPts[user.id].ptsTurnamen += 10;
               } else if (roundName === 'Semi Final') {
                 userPts[user.id].semifinalist += 1;
-                userPts[user.id].pts += 20;
+                userPts[user.id].ptsTurnamen += 20;
               } else if (roundName === 'Final') {
                 userPts[user.id].finalist += 1;
-                userPts[user.id].pts += 30;
+                userPts[user.id].ptsTurnamen += 30;
               }
             }
           });
@@ -396,18 +412,47 @@ export async function recalculatePTS() {
         pemainList.forEach(user => {
           if (isUserInParticipant(t.juara, user.id)) {
             userPts[user.id].juara += 1;
-            userPts[user.id].pts += 50; // +50 PTS for champion
+            userPts[user.id].ptsTurnamen += 50; // +50 PTS for champion
           }
         });
       }
     });
 
+    // 2. Calculate PTS Liga from all leagues
+    leagues.forEach(liga => {
+      const klasemen = liga.klasemen || [];
+      pemainList.forEach(user => {
+        const uName = (user.nama || user.name || '').trim().toLowerCase();
+        const standing = klasemen.find(k => 
+          k.pesertaId === user.id || 
+          (k.nama && k.nama.trim().toLowerCase() === uName)
+        );
+        if (standing) {
+          userPts[user.id].ptsLiga += Number(standing.poin || 0);
+          userPts[user.id].ligaMain += Number(standing.main || 0);
+          userPts[user.id].ligaMenang += Number(standing.menang || 0);
+          userPts[user.id].ligaKalah += Number(standing.kalah || 0);
+        }
+      });
+    });
+
+    // 3. Compute PTS Total = PTS Liga + PTS Turnamen & Save to Firestore
     const promises = pemainList.map(user => {
       const userRef = doc(db, PEMAIN_COLLECTION, user.id);
       const data = userPts[user.id];
+      const totalPoints = data.ptsTurnamen + data.ptsLiga;
+      data.pts = totalPoints;
+      data.ptsTotal = totalPoints;
+
       return setDoc(userRef, {
-        pts: data.pts,
+        pts: totalPoints,
+        ptsTotal: totalPoints,
+        ptsLiga: data.ptsLiga,
+        ptsTurnamen: data.ptsTurnamen,
         statsPTS: {
+          ptsTotal: totalPoints,
+          ptsLiga: data.ptsLiga,
+          ptsTurnamen: data.ptsTurnamen,
           ikutSingle: data.ikutSingle,
           ikutDouble: data.ikutDouble,
           setMenang: data.setMenang,
@@ -415,13 +460,16 @@ export async function recalculatePTS() {
           juara: data.juara,
           finalist: data.finalist,
           semifinalist: data.semifinalist,
-          quarterfinalist: data.quarterfinalist
+          quarterfinalist: data.quarterfinalist,
+          ligaMain: data.ligaMain,
+          ligaMenang: data.ligaMenang,
+          ligaKalah: data.ligaKalah
         }
       }, { merge: true });
     });
 
     await Promise.all(promises);
-    console.log('[PTS] Recalculated points for all users!');
+    console.log('[PTS] Recalculated PTS Total, PTS Liga, and PTS Turnamen for all users!');
   } catch (error) {
     console.error("[PTS] Error recalculating points:", error);
   }
@@ -537,17 +585,240 @@ export async function getLigaById(id) {
 export async function addLiga(liga) {
   const id = liga.id;
   await setDoc(doc(db, LIGA_COLLECTION, id), ligaToFirestore(liga));
+  await recalculatePTS();
   return await getLiga();
 }
 
 export async function updateLiga(id, data) {
   await setDoc(doc(db, LIGA_COLLECTION, id), ligaToFirestore(data));
+  await recalculatePTS();
   return await getLiga();
 }
 
 export async function deleteLiga(id) {
   await deleteDoc(doc(db, LIGA_COLLECTION, id));
+  await recalculatePTS();
   return await getLiga();
 }
+
+/**
+ * Sinkronisasi menyeluruh antara seluruh Member dan seluruh Liga:
+ * Mengisi noHP, karet, divisi, PTM, dan PTS pada peserta liga jika masih kosong atau belum sama dengan database Member.
+ */
+export async function syncAllMembersWithAllLeagues() {
+  try {
+    const allMembers = await getPemain();
+    const allLeagues = await getLiga();
+    if (!allMembers || !allLeagues) return;
+
+    for (const liga of allLeagues) {
+      let isChanged = false;
+      const currentPeserta = (liga.peserta || []).map(p => {
+        const m = allMembers.find(mem => 
+          (mem.id && p.id && mem.id === p.id) || 
+          (mem.nama && p.nama && mem.nama.trim().toLowerCase() === p.nama.trim().toLowerCase())
+        );
+        if (m) {
+          const merged = {
+            ...p,
+            id: p.id || m.id,
+            nama: m.nama || p.nama,
+            noHP: m.noHP || p.noHP || '',
+            divisi: String(m.divisi || p.divisi || '1'),
+            namaPTM: m.namaPTM || p.namaPTM || 'Klub',
+            karetForehand: m.karetForehand || p.karetForehand || '',
+            karetBackhand: m.karetBackhand || p.karetBackhand || '',
+            pts: m.pts || p.pts || 0,
+            ptsTotal: m.ptsTotal !== undefined ? m.ptsTotal : (m.pts || 0),
+            ptsLiga: m.ptsLiga || 0,
+            ptsTurnamen: m.ptsTurnamen || 0,
+            ikutLiga: true
+          };
+          if (
+            p.noHP !== merged.noHP ||
+            p.divisi !== merged.divisi ||
+            p.namaPTM !== merged.namaPTM ||
+            p.karetForehand !== merged.karetForehand ||
+            p.karetBackhand !== merged.karetBackhand ||
+            p.nama !== merged.nama
+          ) {
+            isChanged = true;
+          }
+          return merged;
+        }
+        return p;
+      });
+
+      if (isChanged) {
+        const updatedKlasemen = hitungKlasemenLiga(currentPeserta, liga.jadwal || [], {
+          poinMenang: Number(liga.poinMenang || 3),
+          poinKalah: Number(liga.poinKalah || 0)
+        });
+        await setDoc(doc(db, LIGA_COLLECTION, liga.id), ligaToFirestore({
+          ...liga,
+          peserta: currentPeserta,
+          klasemen: updatedKlasemen
+        }));
+      }
+    }
+  } catch (err) {
+    console.error("Error in syncAllMembersWithAllLeagues:", err);
+  }
+}
+
+/**
+ * Sinkronisasi data Member (users) ke seluruh data Liga yang ada:
+ * - Jika Member diedit, data di peserta liga & pertandingan otomatis terupdate.
+ * - Jika Member dicentang ikutLiga = true, otomatis masuk ke peserta liga.
+ * - Jika Member dicentang ikutLiga = false atau dihapus, otomatis dikeluarkan dari peserta liga.
+ */
+export async function syncMemberToLeagues(memberData, isDelete = false) {
+  try {
+    const allLeagues = await getLiga();
+    if (!allLeagues || allLeagues.length === 0) return;
+
+    for (const liga of allLeagues) {
+      let isChanged = false;
+      let currentPeserta = [...(liga.peserta || [])];
+      const pIdx = currentPeserta.findIndex(
+        p => p.id === memberData.id || p.nama?.trim().toLowerCase() === memberData.nama?.trim().toLowerCase()
+      );
+
+      if (isDelete || memberData.ikutLiga === false) {
+        if (pIdx !== -1) {
+          currentPeserta = currentPeserta.filter((_, idx) => idx !== pIdx);
+          isChanged = true;
+        }
+      } else if (memberData.ikutLiga === true) {
+        if (pIdx !== -1) {
+          // Update existing participant
+          currentPeserta[pIdx] = {
+            ...currentPeserta[pIdx],
+            nama: memberData.nama || currentPeserta[pIdx].nama,
+            noHP: memberData.noHP || currentPeserta[pIdx].noHP || '',
+            divisi: String(memberData.divisi || currentPeserta[pIdx].divisi || '1'),
+            namaPTM: memberData.namaPTM || currentPeserta[pIdx].namaPTM || 'Klub',
+            karetForehand: memberData.karetForehand || currentPeserta[pIdx].karetForehand || '',
+            karetBackhand: memberData.karetBackhand || currentPeserta[pIdx].karetBackhand || '',
+            ikutLiga: true
+          };
+          isChanged = true;
+        } else {
+          // Add new participant to league
+          currentPeserta.push({
+            id: memberData.id,
+            nama: memberData.nama,
+            noHP: memberData.noHP || '',
+            divisi: String(memberData.divisi || '1'),
+            namaPTM: memberData.namaPTM || 'Klub',
+            karetForehand: memberData.karetForehand || '',
+            karetBackhand: memberData.karetBackhand || '',
+            pts: memberData.pts || 0,
+            ikutLiga: true
+          });
+          isChanged = true;
+        }
+      } else {
+        // Just general profile update for player already in the league
+        if (pIdx !== -1) {
+          currentPeserta[pIdx] = {
+            ...currentPeserta[pIdx],
+            nama: memberData.nama || currentPeserta[pIdx].nama,
+            noHP: memberData.noHP || currentPeserta[pIdx].noHP || '',
+            divisi: String(memberData.divisi || currentPeserta[pIdx].divisi || '1'),
+            namaPTM: memberData.namaPTM || currentPeserta[pIdx].namaPTM || 'Klub',
+            karetForehand: memberData.karetForehand || currentPeserta[pIdx].karetForehand || '',
+            karetBackhand: memberData.karetBackhand || currentPeserta[pIdx].karetBackhand || ''
+          };
+          isChanged = true;
+        }
+      }
+
+      if (isChanged) {
+        // Also update name/PTM in matches (jadwal)
+        const updatedJadwal = (liga.jadwal || []).map(pekan => ({
+          ...pekan,
+          pertandingan: (pekan.pertandingan || []).map(m => {
+            let newM = { ...m };
+            if (m.peserta1?.id === memberData.id) {
+              newM.peserta1 = { ...m.peserta1, nama: memberData.nama, namaPTM: memberData.namaPTM || m.peserta1.namaPTM };
+            }
+            if (m.peserta2?.id === memberData.id) {
+              newM.peserta2 = { ...m.peserta2, nama: memberData.nama, namaPTM: memberData.namaPTM || m.peserta2.namaPTM };
+            }
+            if (m.wasit?.id === memberData.id) {
+              newM.wasit = { ...m.wasit, nama: memberData.nama, namaPTM: memberData.namaPTM || m.wasit.namaPTM };
+            }
+            return newM;
+          })
+        }));
+
+        const updatedKlasemen = hitungKlasemenLiga(currentPeserta, updatedJadwal, {
+          poinMenang: Number(liga.poinMenang || 3),
+          poinKalah: Number(liga.poinKalah || 0)
+        });
+
+        await updateLiga(liga.id, {
+          ...liga,
+          peserta: currentPeserta,
+          jadwal: updatedJadwal,
+          klasemen: updatedKlasemen
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing member to leagues:", err);
+  }
+}
+
+/**
+ * Sinkronisasi data Peserta Liga ke database Member (users):
+ * - Saat peserta liga diedit/ditambah, database Member otomatis terupdate & diberi flag ikutLiga = true.
+ * - Saat peserta liga dihapus dari liga, flag ikutLiga pada database Member diubah menjadi false.
+ */
+export async function syncLeaguePlayerToMember(playerData, isRemove = false, currentUser = null) {
+  try {
+    const allMembers = await getPemain();
+    const existing = allMembers.find(
+      m => m.id === playerData.id || m.nama?.trim().toLowerCase() === playerData.nama?.trim().toLowerCase()
+    );
+
+    if (isRemove) {
+      if (existing) {
+        await updatePemain(existing.id, { ikutLiga: false });
+      }
+    } else {
+      if (existing) {
+        await updatePemain(existing.id, {
+          nama: playerData.nama,
+          noHP: playerData.noHP || existing.noHP || '',
+          divisi: String(playerData.divisi || existing.divisi || '1'),
+          namaPTM: playerData.namaPTM || existing.namaPTM || 'Klub',
+          karetForehand: playerData.karetForehand || existing.karetForehand || '',
+          karetBackhand: playerData.karetBackhand || existing.karetBackhand || '',
+          ikutLiga: true
+        });
+      } else {
+        await addPemain({
+          id: playerData.id,
+          nama: playerData.nama,
+          noHP: playerData.noHP || '',
+          divisi: String(playerData.divisi || '1'),
+          namaPTM: playerData.namaPTM || 'Klub',
+          karetForehand: playerData.karetForehand || '',
+          karetBackhand: playerData.karetBackhand || '',
+          ownerUid: currentUser?.uid || '',
+          ownerPTM: playerData.namaPTM || '',
+          pts: 0,
+          ikutLiga: true,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing league player to member:", err);
+  }
+}
+
 
 

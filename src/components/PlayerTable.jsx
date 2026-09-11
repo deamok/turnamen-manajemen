@@ -30,7 +30,7 @@ const PlayerTable = ({ pemainList, onEdit, onDelete, canEdit = true }) => {
             <th style={{ width: '10%' }}>Divisi</th>
             <th style={{ width: '18%' }}>Nama PTM</th>
             <th style={{ width: '17%' }}>Karet Bet (FH / BH)</th>
-            <th style={{ width: '8%' }}>PTS</th>
+            <th style={{ width: '8%' }}>PTS Total</th>
             {canEdit && <th style={{ width: '12%' }}>Aksi</th>}
           </tr>
         </thead>
@@ -38,11 +38,29 @@ const PlayerTable = ({ pemainList, onEdit, onDelete, canEdit = true }) => {
           {pemainList.map((pemain, index) => {
             const fh = pemain.karetForehand || '-';
             const bh = pemain.karetBackhand || '-';
+            const ptsTotalVal = pemain.ptsTotal !== undefined ? pemain.ptsTotal : (pemain.pts || 0);
 
             return (
               <tr key={pemain.id}>
                 <td>{index + 1}</td>
-                <td><strong>{pemain.nama}</strong></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <strong>{pemain.nama}</strong>
+                    {pemain.ikutLiga && (
+                      <span style={{
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        background: 'rgba(0, 200, 255, 0.15)',
+                        color: 'var(--primary-color)',
+                        fontWeight: 'bold',
+                        border: '1px solid rgba(0, 200, 255, 0.3)'
+                      }}>
+                        🏆 Liga
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>{pemain.noHP || '-'}</td>
                 <td>
                   <span className={`badge ${badgeColors[pemain.divisi] || ''}`}>
@@ -66,7 +84,11 @@ const PlayerTable = ({ pemainList, onEdit, onDelete, canEdit = true }) => {
                     </div>
                   </div>
                 </td>
-                <td><strong style={{ color: 'var(--primary-color)' }}>{pemain.pts || 0}</strong></td>
+                <td>
+                  <strong style={{ color: 'var(--primary-color)', fontSize: '1.05rem' }}>
+                    {ptsTotalVal}
+                  </strong>
+                </td>
                 {canEdit && (
                   <td>
                     <div style={{ display: 'flex', gap: '8px' }}>

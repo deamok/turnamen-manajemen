@@ -14,6 +14,27 @@ export function formatTanggal(dateString) {
   });
 }
 
+export function formatRentangTanggal(startDateStr, endDateStr) {
+  if (!startDateStr) return '';
+  const start = new Date(startDateStr);
+  const end = endDateStr ? new Date(endDateStr) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+  
+  const startMonth = start.toLocaleDateString('id-ID', { month: 'long' });
+  const endMonth = end.toLocaleDateString('id-ID', { month: 'long' });
+  const year = end.getFullYear();
+
+  if (startMonth === endMonth && start.getFullYear() === end.getFullYear()) {
+    return `${startDay} s/d ${endDay} ${endMonth} ${year}`;
+  } else if (start.getFullYear() === end.getFullYear()) {
+    return `${startDay} ${startMonth} s/d ${endDay} ${endMonth} ${year}`;
+  } else {
+    return `${startDay} ${startMonth} ${start.getFullYear()} s/d ${endDay} ${endMonth} ${year}`;
+  }
+}
+
 export function hitungUmur(tanggalLahir) {
   if (!tanggalLahir) return 0;
   const birthDate = new Date(tanggalLahir);
@@ -55,3 +76,74 @@ export function buatPasangan(pemainArray) {
   }
   return pairs;
 }
+
+/**
+ * Resize and compress image file to maximum allowed size (default <= 130KB)
+ * @param {File|Blob} file - Original image file
+ * @param {number} maxBytes - Maximum file size in bytes (default 130 * 1024)
+ * @returns {Promise<string>} Base64 Data URL string
+ */
+export function compressImage(file, maxBytes = 130 * 1024) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      resolve('');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Cap initial maximum dimension to 1200px
+        const MAX_DIM = 1200;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = 0.82;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // Iterative reduction of quality
+        while (dataUrl.length * 0.75 > maxBytes && quality > 0.15) {
+          quality -= 0.08;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        // If still > maxBytes, downscale dimensions
+        if (dataUrl.length * 0.75 > maxBytes) {
+          let scale = 0.8;
+          while (dataUrl.length * 0.75 > maxBytes && scale > 0.15) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = Math.max(100, Math.round(width * scale));
+            tempCanvas.height = Math.max(100, Math.round(height * scale));
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+            dataUrl = tempCanvas.toDataURL('image/jpeg', 0.55);
+            scale -= 0.12;
+          }
+        }
+
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = event.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+

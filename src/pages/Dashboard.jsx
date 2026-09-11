@@ -222,9 +222,13 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--color-primary)' }}>{player.pts} <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>PTS</span></div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
-                          🏆 {player.statsPTS?.juara || 0}x Juara
+                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--color-primary)' }}>
+                          {player.ptsTotal !== undefined ? player.ptsTotal : (player.pts || 0)} <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>PTS</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '4px', justifyContent: 'flex-end', marginTop: '2px' }}>
+                          <span>🏆 Liga: {player.ptsLiga || 0}</span>
+                          <span>•</span>
+                          <span>⚔️ Turn: {player.ptsTurnamen !== undefined ? player.ptsTurnamen : ((player.statsPTS ? player.pts : 0) || 0)}</span>
                         </div>
                       </div>
                     </div>

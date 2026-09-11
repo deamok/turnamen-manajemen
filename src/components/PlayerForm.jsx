@@ -15,7 +15,8 @@ const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
     divisi: '1',
     namaPTM: '',
     karetForehand: '',
-    karetBackhand: ''
+    karetBackhand: '',
+    ikutLiga: false
   });
 
   useEffect(() => {
@@ -27,14 +28,15 @@ const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
         divisi: pemain.divisi || '1',
         namaPTM: pemain.namaPTM || '',
         karetForehand: pemain.karetForehand || '',
-        karetBackhand: pemain.karetBackhand || ''
+        karetBackhand: pemain.karetBackhand || '',
+        ikutLiga: !!pemain.ikutLiga
       });
     }
   }, [pemain]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handleSubmit = (e) => {
@@ -93,6 +95,31 @@ const PlayerForm = ({ pemain, onSubmit, onCancel }) => {
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Pilihan Ikut Liga */}
+        <div className="form-group" style={{
+          marginTop: '10px',
+          marginBottom: '15px',
+          padding: '12px 14px',
+          borderRadius: '8px',
+          background: formData.ikutLiga ? 'rgba(0, 200, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+          border: formData.ikutLiga ? '1px solid var(--primary-color)' : '1px solid var(--border-light)',
+          transition: 'all 0.2s'
+        }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', margin: 0, fontWeight: 'bold', color: formData.ikutLiga ? 'var(--primary-color)' : 'var(--text-primary)' }}>
+            <input
+              type="checkbox"
+              name="ikutLiga"
+              checked={!!formData.ikutLiga}
+              onChange={handleChange}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <span>🏆 Ikut Serta dalam Liga Tenis Meja (Peserta Liga)</span>
+          </label>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px', marginLeft: '28px' }}>
+            Jika dicentang, pemain ini otomatis terdaftar di Peserta Liga dan sebaliknya sinkron saat diedit.
           </div>
         </div>
 
