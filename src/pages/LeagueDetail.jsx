@@ -1835,7 +1835,7 @@ const LeagueDetail = () => {
 
       {/* TAB 3: STATISTIK */}
       {activeTab === 'statistik' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
           {/* Ringkasan Liga Card */}
           <div className="card" style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-primary)', fontSize: '1.2rem' }}>
@@ -1961,7 +1961,7 @@ const LeagueDetail = () => {
           zIndex: 1000,
           padding: '16px'
         }}>
-          <div className="card fade-in" style={{ width: '100%', maxWidth: '520px', padding: '24px', background: 'var(--bg-surface)' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '20px', background: 'var(--bg-surface)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Input Skor Pertandingan</h3>
               <button onClick={() => setShowScoreModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>

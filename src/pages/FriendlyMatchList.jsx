@@ -195,8 +195,8 @@ const FriendlyMatchList = () => {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: '1.5rem'
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
+          gap: '1.25rem'
         }}>
           {filteredMatches.map(match => {
             const ptmA = match.ptmA?.nama || 'PTM Tuan Rumah';

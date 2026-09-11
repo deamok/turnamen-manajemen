@@ -1048,69 +1048,200 @@ h1, h2, h3, h4, h5, h6, .font-display {
   }
 }
 
-/* Responsive */
+/* Responsive Styles for Mobile Smartphones & Tablets */
 @media (max-width: 768px) {
-  .page-container {
-    padding: 1rem;
-  }
-  
-  .navbar {
-    padding: 0.75rem 1rem;
-    flex-direction: column;
-    gap: 0.75rem;
-    text-align: center;
-  }
-
-  .navbar-brand {
-    font-size: 1.25rem;
-    justify-content: center;
-  }
-
-  .navbar-links {
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
+  html, body {
+    overflow-x: hidden;
     width: 100%;
   }
 
+  .page-container {
+    padding: 0.75rem 0.6rem;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .page-title {
+    font-size: 1.55rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  
+  .navbar {
+    padding: 0.65rem 0.85rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .mobile-nav-toggle {
+    display: grid !important;
+  }
+
+  .navbar-links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.4rem;
+    padding-top: 0.75rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .navbar-links.mobile-open {
+    display: flex;
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
   .navbar-links a {
-    font-size: 0.9rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.95rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    text-align: left;
+  }
+
+  .navbar-links a.active {
+    background: rgba(0, 200, 255, 0.12);
   }
   
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
   }
   
+  .form-input, .form-select, input[type="text"], input[type="number"], input[type="password"], input[type="email"], select {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+  }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
   }
-  
+
+  .stat-card {
+    padding: 0.9rem 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.85rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  /* Modals on Mobile */
+  .modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    padding: 1rem !important;
+    margin: 0.5rem auto !important;
+    box-sizing: border-box;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header, .modal-body, .modal-footer {
+    padding: 0.75rem !important;
+  }
+
+  /* Tables on Mobile */
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    display: block;
+  }
+
+  .data-table th, .data-table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
   .bracket-container {
     padding: 1rem 0;
+  }
+
+  /* Chip / Filters on Mobile */
+  .divisi-filter {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .chip {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Match cards / Scoreboards */
+  .match-card-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
 @media (max-width: 480px) {
+  .page-container {
+    padding: 0.5rem 0.4rem;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
+  }
+
   .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
   }
 
   .stat-card {
-    padding: 2rem 2.25rem;
+    padding: 0.75rem 0.85rem;
   }
 
   .stat-value {
-    font-size: 4rem;
+    font-size: 1.6rem;
   }
 
   .stat-label {
-    font-size: 1.2rem;
+    font-size: 0.68rem;
   }
 
-  .stat-icon {
-    font-size: 4rem !important;
+  .card, .panel {
+    border-radius: var(--radius-md);
+    padding: 1rem 0.75rem !important;
+  }
+
+  .card-body, .panel-body {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
+  }
+
+  /* Mobile Duel banners */
+  .friendly-duel-banner {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+    gap: 0.8rem !important;
   }
 }
 

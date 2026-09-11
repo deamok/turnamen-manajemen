@@ -448,7 +448,7 @@ const FriendlyMatchDetail = () => {
         </div>
 
         {/* Big Teams Duel Scoreboard */}
-        <div style={{
+        <div className="friendly-duel-banner" style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
