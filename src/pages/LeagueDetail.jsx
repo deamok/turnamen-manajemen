@@ -1183,29 +1183,27 @@ const LeagueDetail = () => {
       {/* TAB 1: KLASEMEN */}
       {activeTab === 'klasemen' && (
         <div className="card" style={{ padding: '20px', overflowX: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem' }}>
               Klasemen Sementara Liga
             </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               Aturan Poin: Menang ({league.poinMenang || 3} Poin) • Kalah ({league.poinKalah || 0} Poin)
             </span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.92rem' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-                <th style={{ padding: '12px 8px', textAlign: 'center', width: '40px' }}>Pos</th>
-                <th style={{ padding: '12px 12px' }}>Peserta / Klub</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>M</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>W</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>L</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>Set (W-L)</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>Sel. Set</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>Poin (W-L)</th>
-                <th style={{ padding: '12px 8px', textAlign: 'center' }}>Sel. Poin</th>
-                <th style={{ padding: '12px 12px', textAlign: 'center', color: 'var(--primary-color)', fontWeight: 'bold' }}>PTS</th>
-                <th style={{ padding: '12px 12px', textAlign: 'center' }}>Form (5 Laga)</th>
+              <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '55px' }}>Pos</th>
+                <th style={{ padding: '14px 16px' }}>Peserta / Klub</th>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>M</th>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>W</th>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>L</th>
+                <th style={{ padding: '14px 14px', textAlign: 'center', width: '110px' }}>Set (W-L)</th>
+                <th style={{ padding: '14px 14px', textAlign: 'center', width: '100px' }}>Sel. Set</th>
+                <th style={{ padding: '14px 16px', textAlign: 'center', width: '90px', color: 'var(--primary-color)', fontWeight: 'bold' }}>PTS</th>
+                <th style={{ padding: '14px 16px', textAlign: 'center', width: '150px' }}>Form (5 Laga)</th>
               </tr>
             </thead>
             <tbody>
@@ -1217,10 +1215,6 @@ const LeagueDetail = () => {
                 const setDiffA = Number(a.selisihSet !== undefined ? a.selisihSet : (Number(a.setMenang || 0) - Number(a.setKalah || 0)));
                 const setDiffB = Number(b.selisihSet !== undefined ? b.selisihSet : (Number(b.setMenang || 0) - Number(b.setKalah || 0)));
                 if (setDiffB !== setDiffA) return setDiffB - setDiffA;
-
-                const ptDiffA = Number(a.selisihPoin !== undefined ? a.selisihPoin : (Number(a.poinMenang || 0) - Number(a.poinKalah || 0)));
-                const ptDiffB = Number(b.selisihPoin !== undefined ? b.selisihPoin : (Number(b.poinMenang || 0) - Number(b.poinKalah || 0)));
-                if (ptDiffB !== ptDiffA) return ptDiffB - ptDiffA;
 
                 const setWonA = Number(a.setMenang || 0);
                 const setWonB = Number(b.setMenang || 0);
@@ -1251,33 +1245,29 @@ const LeagueDetail = () => {
                       transition: 'background 0.15s'
                     }}
                   >
-                    <td style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 'bold' }}>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 'bold' }}>
                       {posBadge}
                     </td>
-                    <td style={{ padding: '12px 12px' }}>
-                      <div style={{ fontWeight: idx < 3 ? 'bold' : 'normal', color: 'var(--text-primary)' }}>
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ fontWeight: idx < 3 ? 'bold' : '500', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                         {row.nama}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                         {row.namaPTM}
                       </div>
                     </td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>{row.main}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--success-color)', fontWeight: 'bold' }}>{row.menang}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--danger-color)' }}>{row.kalah}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>{row.setMenang}-{row.setKalah}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 'bold', color: row.selisihSet > 0 ? 'var(--success-color)' : row.selisihSet < 0 ? 'var(--danger-color)' : 'inherit' }}>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--text-secondary)' }}>{row.main}</td>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--success-color)', fontWeight: 'bold' }}>{row.menang}</td>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--danger-color)' }}>{row.kalah}</td>
+                    <td style={{ padding: '14px 14px', textAlign: 'center', fontWeight: '500' }}>{row.setMenang} - {row.setKalah}</td>
+                    <td style={{ padding: '14px 14px', textAlign: 'center', fontWeight: 'bold', color: row.selisihSet > 0 ? 'var(--success-color)' : row.selisihSet < 0 ? 'var(--danger-color)' : 'inherit' }}>
                       {row.selisihSet > 0 ? `+${row.selisihSet}` : row.selisihSet}
                     </td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center' }}>{row.poinMenang}-{row.poinKalah}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'center', color: row.selisihPoin > 0 ? 'var(--success-color)' : row.selisihPoin < 0 ? 'var(--danger-color)' : 'inherit' }}>
-                      {row.selisihPoin > 0 ? `+${row.selisihPoin}` : row.selisihPoin}
-                    </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '1.15rem', fontWeight: '900', color: 'var(--primary-color)' }}>
                       {row.poin}
                     </td>
-                    <td style={{ padding: '12px 12px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                         {(row.last5Form || []).length === 0 ? (
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
                         ) : (
@@ -1285,12 +1275,12 @@ const LeagueDetail = () => {
                             <span
                               key={fIdx}
                               style={{
-                                width: '20px',
-                                height: '20px',
+                                width: '22px',
+                                height: '22px',
                                 borderRadius: '4px',
                                 display: 'grid',
                                 placeItems: 'center',
-                                fontSize: '0.7rem',
+                                fontSize: '0.72rem',
                                 fontWeight: 'bold',
                                 background: f === 'W' ? 'var(--success-color)' : 'var(--danger-color)',
                                 color: '#fff'
@@ -1309,8 +1299,8 @@ const LeagueDetail = () => {
           </table>
 
           {/* Tie-breaker Legend */}
-          <div style={{ marginTop: '1.5rem', padding: '12px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface-elevated)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            <strong>💡 Urutan Penentuan Peringkat (Tie-Breaker):</strong> Poin Klasemen (PTS) ➔ Selisih Set (Set Won - Set Lost) ➔ Selisih Angka Poin ➔ Jumlah Set Menang ➔ Nama Peserta.
+          <div style={{ marginTop: '1.5rem', padding: '12px 16px', borderRadius: 'var(--radius-sm)', background: 'var(--bg-surface-elevated)', fontSize: '0.78rem', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' }}>
+            <strong>💡 Urutan Penentuan Peringkat (Tie-Breaker):</strong> Poin Klasemen (PTS) ➔ Selisih Set (Set Menang - Set Kalah) ➔ Jumlah Set Menang ➔ Nama Peserta.
           </div>
         </div>
       )}
@@ -2199,13 +2189,9 @@ const LeagueDetail = () => {
                 <span style={{ color: 'var(--text-secondary)' }}>Sisa Pertandingan</span>
                 <strong style={{ color: 'var(--warning-color)' }}>{stats?.remainingMatches || 0} Partai</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Total Set Dimainkan</span>
                 <strong>{stats?.totalSets || 0} Set</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Total Poin Angka Tercipta</span>
-                <strong>{stats?.totalPoints || 0} Poin</strong>
               </div>
             </div>
           </div>
