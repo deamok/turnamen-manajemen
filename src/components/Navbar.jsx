@@ -79,16 +79,7 @@ const Navbar = () => {
       {/* Navigation Links */}
       <div className={`navbar-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <NavLink to="/" onClick={handleNavClick} className={({ isActive }) => isActive ? "active" : ""}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/liga" onClick={handleNavClick} className={({ isActive }) => isActive ? "active" : ""}>
           Liga 🏆
-        </NavLink>
-        <NavLink to="/persahabatan" onClick={handleNavClick} className={({ isActive }) => isActive ? "active" : ""}>
-          Persahabatan 🤝
-        </NavLink>
-        <NavLink to="/jadwal" onClick={handleNavClick} className={({ isActive }) => isActive ? "active" : ""}>
-          Histori
         </NavLink>
         
         {currentUser && (

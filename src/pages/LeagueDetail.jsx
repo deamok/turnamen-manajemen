@@ -4,7 +4,7 @@ import { getLigaById, updateLiga, deleteLiga, getPemain, syncLeaguePlayerToMembe
 import { hitungKlasemenLiga, calculateLeagueStats } from '../utils/league';
 import { tentukanPemenang } from '../utils/tournament';
 import { useAuth } from '../contexts/AuthContext';
-import { formatTanggal, formatRentangTanggal, generateId, compressImage } from '../utils/helpers';
+import { formatTanggal, formatRentangTanggal, generateId, compressImage, parseMatchScore } from '../utils/helpers';
 
 const badgeColors = {
   '1': 'badge-danger',
@@ -32,10 +32,11 @@ const LeagueDetail = () => {
   const [activeTab, setActiveTab] = useState('klasemen'); // 'klasemen' | 'peserta' | 'jadwal' | 'statistik' | 'pengaturan'
   const [selectedPekan, setSelectedPekan] = useState('semua');
 
-  // Score Modal State
+  // Score Modal State (Hasil Set)
   const [activeMatch, setActiveMatch] = useState(null);
   const [activePekan, setActivePekan] = useState(null);
-  const [scores, setScores] = useState(Array.from({ length: 5 }, () => ['', '']));
+  const [modalSet1, setModalSet1] = useState('');
+  const [modalSet2, setModalSet2] = useState('');
   const [modalMeja, setModalMeja] = useState('Meja 1');
   const [modalJam, setModalJam] = useState('09:00');
   const [modalTanggal, setModalTanggal] = useState('');
@@ -46,6 +47,22 @@ const LeagueDetail = () => {
   const [isCompressingFoto, setIsCompressingFoto] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [showScoreModal, setShowScoreModal] = useState(false);
+
+  // Quick Match Input Card State (Admin)
+  const [inputPekanId, setInputPekanId] = useState('');
+  const [inputTanggal, setInputTanggal] = useState(() => new Date().toISOString().split('T')[0]);
+  const [inputJam, setInputJam] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+  const [inputMeja, setInputMeja] = useState('Meja 1');
+  const [inputPeserta1Id, setInputPeserta1Id] = useState('');
+  const [inputPeserta2Id, setInputPeserta2Id] = useState('');
+  const [inputWasitId, setInputWasitId] = useState('');
+  const [inputSet1, setInputSet1] = useState('');
+  const [inputSet2, setInputSet2] = useState('');
+  const [inputFotoBukti, setInputFotoBukti] = useState('');
+  const [isCompressingInputFoto, setIsCompressingInputFoto] = useState(false);
 
   // Filter display for draft matches (only active + 1 new card by default)
   const [showAllDraftMatches, setShowAllDraftMatches] = useState({});
@@ -193,14 +210,13 @@ const LeagueDetail = () => {
     const currentFormattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setModalJam(match.jam && match.jam !== 'Bebas' ? match.jam : currentFormattedTime);
 
-    const maxSets = league.formatSet === 'best_of_3' ? 3 : 5;
-    if (match.skor && match.skor.length > 0) {
-      const initial = Array.from({ length: maxSets }, (_, i) =>
-        match.skor[i] ? [String(match.skor[i][0]), String(match.skor[i][1])] : ['', '']
-      );
-      setScores(initial);
+    if (match.skor && (Array.isArray(match.skor) ? match.skor.length > 0 : true)) {
+      const [s1, s2] = parseMatchScore(match.skor);
+      setModalSet1(match.selesai || s1 > 0 || s2 > 0 ? String(s1) : '');
+      setModalSet2(match.selesai || s1 > 0 || s2 > 0 ? String(s2) : '');
     } else {
-      setScores(Array.from({ length: maxSets }, () => ['', '']));
+      setModalSet1('');
+      setModalSet2('');
     }
     setShowScoreModal(true);
   };
@@ -222,11 +238,153 @@ const LeagueDetail = () => {
     }
   };
 
-  const handleScoreChange = (setIndex, playerIndex, value) => {
-    const newScores = scores.map((s, i) =>
-      i === setIndex ? s.map((v, j) => (j === playerIndex ? value : v)) : [...s]
-    );
-    setScores(newScores);
+  const handleInputFotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingInputFoto(true);
+      const compressedDataUrl = await compressImage(file, 130 * 1024);
+      setInputFotoBukti(compressedDataUrl);
+    } catch (err) {
+      console.error("Error compressing match photo:", err);
+      alert("Gagal memproses foto: " + err.message);
+    } finally {
+      setIsCompressingInputFoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickSubmitMatch = async (e) => {
+    if (e) e.preventDefault();
+    if (!canManage || !league) return;
+
+    const targetPekanId = inputPekanId || (selectedPekan !== 'semua' ? selectedPekan : league.jadwal?.[0]?.id);
+    if (!targetPekanId) {
+      alert("Silakan pilih Pekan pertandingan!");
+      return;
+    }
+
+    if (!inputPeserta1Id || !inputPeserta2Id) {
+      alert("Silakan pilih Pemain 1 dan Pemain 2!");
+      return;
+    }
+
+    if (inputPeserta1Id === inputPeserta2Id) {
+      alert("Pemain 1 dan Pemain 2 tidak boleh orang yang sama!");
+      return;
+    }
+
+    const s1 = inputSet1 === '' ? null : parseInt(inputSet1);
+    const s2 = inputSet2 === '' ? null : parseInt(inputSet2);
+
+    if (s1 === null || s2 === null || isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) {
+      alert("Silakan masukkan jumlah set yang dimenangkan masing-masing pemain!");
+      return;
+    }
+
+    if (s1 === s2) {
+      alert("Pertandingan tenis meja tidak boleh berakhir seri pada jumlah set!");
+      return;
+    }
+
+    const p1 = league.peserta.find(p => p.id === inputPeserta1Id);
+    const p2 = league.peserta.find(p => p.id === inputPeserta2Id);
+    const wasitObj = league.peserta.find(p => p.id === inputWasitId) || null;
+
+    const pemenangId = s1 > s2 ? p1.id : p2.id;
+    const targetPekan = (league.jadwal || []).find(p => p.id === targetPekanId);
+    const pekanNumber = targetPekan?.pekan || 1;
+
+    const newMatch = {
+      id: generateId(),
+      isBye: false,
+      pekan: pekanNumber,
+      peserta1: p1,
+      peserta2: p2,
+      wasit: wasitObj ? { id: wasitObj.id, nama: wasitObj.nama, namaPTM: wasitObj.namaPTM } : null,
+      meja: inputMeja || 'Meja 1',
+      tanggal: inputTanggal,
+      jam: inputJam || 'Bebas',
+      skor: [s1, s2],
+      pemenang: pemenangId,
+      selesai: true,
+      fotoBukti: inputFotoBukti || '',
+      catatan: ''
+    };
+
+    const updatedJadwal = (league.jadwal || []).map(p => {
+      if (p.id === targetPekanId) {
+        return {
+          ...p,
+          pertandingan: [newMatch, ...(p.pertandingan || []).filter(m => !(!m.selesai && (!m.skor || m.skor.length === 0) && m.peserta1?.id === p1.id && m.peserta2?.id === p2.id))]
+        };
+      }
+      return p;
+    });
+
+    const updatedKlasemen = hitungKlasemenLiga(league.peserta, updatedJadwal, {
+      poinMenang: Number(league.poinMenang || 3),
+      poinKalah: Number(league.poinKalah || 0)
+    });
+
+    const updatedLeague = {
+      ...league,
+      jadwal: updatedJadwal,
+      klasemen: updatedKlasemen
+    };
+
+    try {
+      await updateLiga(league.id, updatedLeague);
+      setLeague(updatedLeague);
+      
+      // Reset form: date & time keep current, players & referee reset to empty
+      const now = new Date();
+      setInputTanggal(now.toISOString().split('T')[0]);
+      setInputJam(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+      setInputPeserta1Id('');
+      setInputPeserta2Id('');
+      setInputWasitId('');
+      setInputSet1('');
+      setInputSet2('');
+      setInputFotoBukti('');
+      alert("Hasil pertandingan berhasil disimpan dan klasemen telah diperbarui!");
+    } catch (err) {
+      alert("Gagal menyimpan hasil pertandingan: " + err.message);
+    }
+  };
+
+  const handleDeleteMatch = async (pekanId, matchId) => {
+    if (!canManage || !league) return;
+    if (!window.confirm("Apakah Anda yakin ingin menghapus hasil pertandingan ini?")) return;
+
+    const updatedJadwal = (league.jadwal || []).map(p => {
+      if (p.id === pekanId) {
+        return {
+          ...p,
+          pertandingan: (p.pertandingan || []).filter(m => m.id !== matchId)
+        };
+      }
+      return p;
+    });
+
+    const updatedKlasemen = hitungKlasemenLiga(league.peserta, updatedJadwal, {
+      poinMenang: Number(league.poinMenang || 3),
+      poinKalah: Number(league.poinKalah || 0)
+    });
+
+    const updatedLeague = {
+      ...league,
+      jadwal: updatedJadwal,
+      klasemen: updatedKlasemen
+    };
+
+    try {
+      await updateLiga(league.id, updatedLeague);
+      setLeague(updatedLeague);
+      alert("Hasil pertandingan telah dihapus.");
+    } catch (err) {
+      alert("Gagal menghapus hasil pertandingan: " + err.message);
+    }
   };
 
   const handleUpdateMatchPlayer = async (pekanId, matchId, playerNum, newPlayerId) => {
@@ -611,12 +769,20 @@ const LeagueDetail = () => {
   const handleSaveScore = async () => {
     if (!activeMatch || !activePekan || !league) return;
 
-    const requiredWins = league.formatSet === 'best_of_3' ? 2 : 3;
-    const currentValidScores = scores
-      .filter(s => s[0] !== '' && s[1] !== '')
-      .map(s => [parseInt(s[0]) || 0, parseInt(s[1]) || 0]);
+    const s1 = modalSet1 === '' ? null : parseInt(modalSet1);
+    const s2 = modalSet2 === '' ? null : parseInt(modalSet2);
 
-    const winnerNumber = tentukanPemenang(currentValidScores, requiredWins);
+    if (s1 === null || s2 === null || isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) {
+      alert("Silakan masukkan jumlah set yang dimenangkan masing-masing pemain!");
+      return;
+    }
+
+    if (s1 === s2) {
+      alert("Pertandingan tenis meja tidak boleh berakhir seri pada jumlah set!");
+      return;
+    }
+
+    const currentValidScores = [s1, s2];
     const p1 = league.peserta.find(p => p.id === modalPeserta1Id) || activeMatch.peserta1;
     const p2 = league.peserta.find(p => p.id === modalPeserta2Id) || activeMatch.peserta2;
     const wasitObj = league.peserta.find(p => p.id === modalWasitId) || null;
@@ -624,10 +790,10 @@ const LeagueDetail = () => {
     let pemenangId = null;
     let isFinished = false;
 
-    if (winnerNumber === 1) {
+    if (s1 > s2) {
       pemenangId = p1?.id;
       isFinished = true;
-    } else if (winnerNumber === 2) {
+    } else if (s2 > s1) {
       pemenangId = p2?.id;
       isFinished = true;
     }
@@ -751,20 +917,14 @@ const LeagueDetail = () => {
   const handleSaveScoreboardResult = async () => {
     if (!activeMatch || !activePekan || !league) return;
 
-    let finalScores = [...liveHistory];
-    if (liveP1Score > 0 || liveP2Score > 0) {
-      finalScores.push([liveP1Score, liveP2Score]);
-    }
-
-    const requiredWins = league.formatSet === 'best_of_3' ? 2 : 3;
-    const winnerNumber = tentukanPemenang(finalScores, requiredWins);
+    const finalScores = [liveP1Sets, liveP2Sets];
     let pemenangId = null;
     let isFinished = false;
 
-    if (winnerNumber === 1) {
+    if (liveP1Sets > liveP2Sets) {
       pemenangId = activeMatch.peserta1?.id;
       isFinished = true;
-    } else if (winnerNumber === 2) {
+    } else if (liveP2Sets > liveP1Sets) {
       pemenangId = activeMatch.peserta2?.id;
       isFinished = true;
     }
@@ -990,7 +1150,7 @@ const LeagueDetail = () => {
         {[
           { key: 'klasemen', label: '🏆 Tabel Klasemen', icon: '🏆' },
           { key: 'peserta', label: '👥 Peserta Liga', icon: '👥' },
-          { key: 'jadwal', label: '📅 Jadwal & Hasil Pekan', icon: '📅' },
+          { key: 'jadwal', label: '🏓 Hasil Pertandingan', icon: '🏓' },
           { key: 'statistik', label: '📊 Statistik & Rekap', icon: '📊' },
           ...(canManage ? [{ key: 'pengaturan', label: '⚙️ Pengaturan Liga', icon: '⚙️' }] : [])
         ].map(tab => (
@@ -1348,10 +1508,10 @@ const LeagueDetail = () => {
         );
       })()}
 
-      {/* TAB 2: JADWAL & HASIL PEKAN */}
+      {/* TAB 2: HASIL PERTANDINGAN */}
       {activeTab === 'jadwal' && (
         <div>
-          {/* Pekan Filter Pills */}
+          {/* Sub menu: Pekan Filter Pills */}
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -1399,27 +1559,391 @@ const LeagueDetail = () => {
             })}
           </div>
 
-          {/* List of Weeks */}
+          {/* ADMIN QUICK INPUT CARD AT TOP */}
+          {canManage && (
+            <div className="card" style={{
+              padding: '20px',
+              marginBottom: '1.5rem',
+              background: 'linear-gradient(145deg, rgba(0, 200, 255, 0.05), rgba(168, 85, 247, 0.05))',
+              border: '1px solid rgba(0, 200, 255, 0.35)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '1.3rem' }}>⚡</span>
+                  <div>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.15rem' }}>
+                      Input Hasil Pertandingan
+                    </h3>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Catat hasil pertandingan langsung ke sistem. Tanggal dan jam otomatis waktu saat ini.
+                    </span>
+                  </div>
+                </div>
+                <span className="badge badge-primary" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>
+                  Mode Admin
+                </span>
+              </div>
+
+              <form onSubmit={handleQuickSubmitMatch}>
+                {/* Row 1: Pekan, Meja, Tanggal, Jam, Wasit */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '10px',
+                  marginBottom: '14px',
+                  padding: '12px',
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-light)'
+                }}>
+                  {/* Pekan selector */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      📅 Pekan
+                    </label>
+                    <select
+                      className="input"
+                      value={inputPekanId || (selectedPekan !== 'semua' ? selectedPekan : (league.jadwal?.[0]?.id || ''))}
+                      onChange={(e) => setInputPekanId(e.target.value)}
+                      style={{ fontSize: '0.82rem', padding: '6px 8px', width: '100%' }}
+                    >
+                      {(league.jadwal || []).map((p, idx) => {
+                        const pInfo = getPekanInfo(p, idx);
+                        return (
+                          <option key={p.id} value={p.id}>
+                            {pInfo.cleanName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Meja selector */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      🏓 Meja
+                    </label>
+                    <select
+                      className="input"
+                      value={inputMeja}
+                      onChange={(e) => setInputMeja(e.target.value)}
+                      style={{ fontSize: '0.82rem', padding: '6px 8px', width: '100%' }}
+                    >
+                      <option value="Meja 1">🏓 Meja 1</option>
+                      <option value="Meja 2">🏓 Meja 2</option>
+                      <option value="Meja 3">🏓 Meja 3</option>
+                      <option value="Meja 4">🏓 Meja 4</option>
+                      <option value="Meja 5">🏓 Meja 5</option>
+                      <option value="Meja 6">🏓 Meja 6</option>
+                    </select>
+                  </div>
+
+                  {/* Tanggal */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      📅 Tanggal
+                    </label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={inputTanggal}
+                      onChange={(e) => setInputTanggal(e.target.value)}
+                      style={{ fontSize: '0.82rem', padding: '6px 8px', width: '100%' }}
+                      required
+                    />
+                  </div>
+
+                  {/* Jam */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      ⏰ Jam
+                    </label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <input
+                        type="text"
+                        className="input"
+                        value={inputJam}
+                        onChange={(e) => setInputJam(e.target.value)}
+                        placeholder="09:00"
+                        style={{ fontSize: '0.82rem', padding: '6px 8px', flex: 1, textAlign: 'center' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const now = new Date();
+                          setInputJam(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+                        }}
+                        title="Set ke Jam Sekarang"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0 8px', fontSize: '0.85rem' }}
+                      >
+                        ⚡
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Wasit */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      👨‍⚖️ Wasit (Pemain)
+                    </label>
+                    <select
+                      className="input"
+                      value={inputWasitId}
+                      onChange={(e) => setInputWasitId(e.target.value)}
+                      style={{ fontSize: '0.82rem', padding: '6px 8px', width: '100%' }}
+                    >
+                      <option value="">-- Kosong (Tanpa Wasit) --</option>
+                      {(league.peserta || []).map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nama} ({p.namaPTM})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 2: Players and Scores */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+                  gap: '12px',
+                  alignItems: 'center',
+                  padding: '16px',
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-light)',
+                  marginBottom: '14px'
+                }}>
+                  {/* Pemain 1 Box */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: '6px' }}>
+                      🔵 PEMAIN 1
+                    </label>
+                    <select
+                      className="input"
+                      value={inputPeserta1Id}
+                      onChange={(e) => setInputPeserta1Id(e.target.value)}
+                      style={{ fontSize: '0.85rem', padding: '8px 10px', width: '100%', marginBottom: '8px', fontWeight: 'bold' }}
+                      required
+                    >
+                      <option value="">-- Pilih Pemain 1 --</option>
+                      {(league.peserta || []).map(p => (
+                        <option key={p.id} value={p.id} disabled={p.id === inputPeserta2Id}>
+                          {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Set Menang:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          onClick={() => setInputSet1(String(Math.max(0, (parseInt(inputSet1) || 0) - 1)))}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          max="9"
+                          className="input"
+                          value={inputSet1}
+                          onChange={(e) => setInputSet1(e.target.value)}
+                          placeholder="0"
+                          style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', padding: '4px' }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          onClick={() => setInputSet1(String((parseInt(inputSet1) || 0) + 1))}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* VS / Score Divider */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 12px',
+                    background: 'rgba(0,0,0,0.1)',
+                    borderRadius: '8px'
+                  }}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--warning-color)' }}>VS</span>
+                    {inputSet1 !== '' && inputSet2 !== '' && (
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '4px' }}>
+                        {inputSet1} - {inputSet2}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pemain 2 Box */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--secondary-color)', fontWeight: 'bold', marginBottom: '6px' }}>
+                      🟣 PEMAIN 2
+                    </label>
+                    <select
+                      className="input"
+                      value={inputPeserta2Id}
+                      onChange={(e) => setInputPeserta2Id(e.target.value)}
+                      style={{ fontSize: '0.85rem', padding: '8px 10px', width: '100%', marginBottom: '8px', fontWeight: 'bold' }}
+                      required
+                    >
+                      <option value="">-- Pilih Pemain 2 --</option>
+                      {(league.peserta || []).map(p => (
+                        <option key={p.id} value={p.id} disabled={p.id === inputPeserta1Id}>
+                          {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Set Menang:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          onClick={() => setInputSet2(String(Math.max(0, (parseInt(inputSet2) || 0) - 1)))}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          max="9"
+                          className="input"
+                          value={inputSet2}
+                          onChange={(e) => setInputSet2(e.target.value)}
+                          placeholder="0"
+                          style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', padding: '4px' }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          onClick={() => setInputSet2(String((parseInt(inputSet2) || 0) + 1))}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 3: Preset buttons, Foto Bukti & Submit */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  {/* Preset score pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pilihan Cepat Skor:</span>
+                    {(league.formatSet === 'best_of_3' 
+                      ? [[2, 0], [2, 1], [1, 2], [0, 2]]
+                      : [[3, 0], [3, 1], [3, 2], [2, 3], [1, 3], [0, 3]]
+                    ).map(([p1, p2]) => (
+                      <button
+                        key={`${p1}-${p2}`}
+                        type="button"
+                        onClick={() => {
+                          setInputSet1(String(p1));
+                          setInputSet2(String(p2));
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '3px 8px',
+                          background: (parseInt(inputSet1) === p1 && parseInt(inputSet2) === p2) ? 'var(--primary-color)' : undefined,
+                          color: (parseInt(inputSet1) === p1 && parseInt(inputSet2) === p2) ? '#080b16' : undefined,
+                          fontWeight: (parseInt(inputSet1) === p1 && parseInt(inputSet2) === p2) ? 'bold' : 'normal'
+                        }}
+                      >
+                        {p1} - {p2}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Action button & foto bukti */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {inputFotoBukti ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <img
+                          src={inputFotoBukti}
+                          alt="Bukti"
+                          onClick={() => setPreviewImage(inputFotoBukti)}
+                          style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer', border: '1px solid var(--border-light)' }}
+                          title="Lihat Foto Bukti"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setInputFotoBukti('')}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', fontSize: '0.8rem' }}
+                          title="Hapus Foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          type="file"
+                          id="quick-foto-input"
+                          accept="image/*"
+                          onChange={handleInputFotoUpload}
+                          style={{ display: 'none' }}
+                          disabled={isCompressingInputFoto}
+                        />
+                        <label
+                          htmlFor="quick-foto-input"
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: isCompressingInputFoto ? 'wait' : 'pointer',
+                            fontSize: '0.78rem',
+                            padding: '6px 10px'
+                          }}
+                        >
+                          {isCompressingInputFoto ? '⏳ Memproses...' : '📷 Foto Bukti'}
+                        </label>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.88rem', padding: '8px 16px', fontWeight: 'bold' }}
+                      disabled={!inputPeserta1Id || !inputPeserta2Id || inputSet1 === '' || inputSet2 === '' || parseInt(inputSet1) === parseInt(inputSet2)}
+                    >
+                      💾 Simpan Hasil Pertandingan
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* List of Weeks / Match Results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {(league.jadwal || [])
               .filter(p => selectedPekan === 'semua' || p.id === selectedPekan)
               .map((pekan, pIdx) => {
                 const pInfo = getPekanInfo(pekan, pIdx);
-                const activeMatches = (pekan.pertandingan || []).filter(m => !m.isBye);
+                const resultMatches = (pekan.pertandingan || []).filter(m => !m.isBye && (m.selesai || (m.skor && m.skor.length > 0)));
                 const byeMatches = (pekan.pertandingan || []).filter(m => m.isBye);
                 const weekDateRange = pInfo.rentang;
-
-                // Match display filtering:
-                // Matches that are finished, have score, customized time/table, or has assigned referee
-                const isStartedOrDone = (m) => m.selesai || (m.skor && m.skor.length > 0) || (m.jam && m.jam !== 'Bebas') || m.wasit;
-                const doneOrActiveMatches = activeMatches.filter(isStartedOrDone);
-                const remainingMatches = activeMatches.filter(m => !isStartedOrDone(m));
-
-                const numUnplayedToShow = extraSlotsCount[pekan.id] !== undefined ? extraSlotsCount[pekan.id] : 1;
-                const isAllShown = !!showAllDraftMatches[pekan.id];
-                const displayedMatches = isAllShown
-                  ? activeMatches
-                  : [...doneOrActiveMatches, ...remainingMatches.slice(0, numUnplayedToShow)];
 
                 return (
                   <div key={pekan.id} className="card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -1442,24 +1966,38 @@ const LeagueDetail = () => {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                          Selesai: {doneOrActiveMatches.filter(m => m.selesai).length} / {activeMatches.length} Partai
+                          Hasil Pertandingan: <strong style={{ color: 'var(--success-color)' }}>{resultMatches.length}</strong> Partai Selesai
                         </span>
                       </div>
                     </div>
 
-                    {/* Match Cards */}
+                    {/* Match Result Cards */}
                     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {displayedMatches.map((m) => {
+                      {resultMatches.length === 0 && (
+                        <div style={{
+                          textAlign: 'center',
+                          padding: '30px 16px',
+                          color: 'var(--text-muted)',
+                          background: 'var(--bg-surface)',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px dashed var(--border-light)'
+                        }}>
+                          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🏓</div>
+                          <div style={{ fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                            Belum ada hasil pertandingan yang dicatat untuk {pInfo.cleanName}.
+                          </div>
+                          {canManage && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--primary-color)' }}>
+                              Gunakan kartu input di atas untuk mencatat hasil pertandingan pekan ini.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {resultMatches.map((m) => {
                         const isP1Winner = m.selesai && m.pemenang === m.peserta1?.id;
                         const isP2Winner = m.selesai && m.pemenang === m.peserta2?.id;
-
-                        // Count sets won
-                        let p1Sets = 0;
-                        let p2Sets = 0;
-                        (m.skor || []).forEach(s => {
-                          if (s[0] > s[1]) p1Sets++;
-                          else if (s[1] > s[0]) p2Sets++;
-                        });
+                        const [p1Sets, p2Sets] = parseMatchScore(m.skor);
 
                         return (
                           <div
@@ -1468,7 +2006,7 @@ const LeagueDetail = () => {
                               padding: '16px 18px',
                               borderRadius: 'var(--radius-md)',
                               background: 'var(--bg-surface-elevated)',
-                              border: m.selesai ? '1px solid var(--border-light)' : '1px solid var(--border-color)',
+                              border: '1px solid var(--border-light)',
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '12px'
@@ -1485,101 +2023,23 @@ const LeagueDetail = () => {
                               borderBottom: '1px solid var(--border-light)',
                               fontSize: '0.82rem'
                             }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                {/* Pilihan Meja */}
-                                {canManage ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Meja:</span>
-                                    <select
-                                      className="input"
-                                      value={m.meja || 'Meja 1'}
-                                      onChange={(e) => handleUpdateMatchField(pekan.id, m.id, 'meja', e.target.value)}
-                                      style={{ padding: '3px 8px', fontSize: '0.8rem', width: 'auto' }}
-                                    >
-                                      <option value="Meja 1">🏓 Meja 1</option>
-                                      <option value="Meja 2">🏓 Meja 2</option>
-                                      <option value="Meja 3">🏓 Meja 3</option>
-                                      <option value="Meja 4">🏓 Meja 4</option>
-                                    </select>
-                                  </div>
-                                ) : (
-                                  <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                                    🏓 {m.meja || 'Meja 1'}
-                                  </span>
-                                )}
-
-                                {/* Tanggal Pertandingan */}
-                                {canManage ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Tgl:</span>
-                                    <input
-                                      type="date"
-                                      className="input"
-                                      value={m.tanggal || pInfo.startStr}
-                                      onChange={(e) => handleUpdateMatchField(pekan.id, m.id, 'tanggal', e.target.value)}
-                                      style={{ padding: '3px 6px', fontSize: '0.8rem', width: 'auto' }}
-                                    />
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-secondary)' }}>
-                                    📅 {m.tanggal ? formatTanggal(m.tanggal) : weekDateRange}
-                                  </span>
-                                )}
-
-                                {/* Waktu Pertandingan */}
-                                {canManage ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ color: 'var(--text-secondary)' }}>Jam:</span>
-                                    <input
-                                      type="text"
-                                      className="input"
-                                      placeholder="Bebas"
-                                      value={m.jam && m.jam !== 'Bebas' ? m.jam : ''}
-                                      onChange={(e) => handleUpdateMatchField(pekan.id, m.id, 'jam', e.target.value || 'Bebas')}
-                                      style={{ padding: '3px 6px', fontSize: '0.8rem', width: '70px', textAlign: 'center' }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const now = new Date();
-                                        const curTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                                        handleUpdateMatchField(pekan.id, m.id, 'jam', curTime);
-                                      }}
-                                      title="Set ke Jam Sekarang"
-                                      style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontSize: '0.85rem' }}
-                                    >
-                                      ⚡
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-secondary)' }}>
-                                    ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Waktu Bebas'}
-                                  </span>
-                                )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                  🏓 {m.meja || 'Meja 1'}
+                                </span>
+                                <span style={{ color: 'var(--text-secondary)' }}>
+                                  📅 {m.tanggal ? formatTanggal(m.tanggal) : weekDateRange}
+                                </span>
+                                <span style={{ color: 'var(--text-secondary)' }}>
+                                  ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Waktu Bebas'}
+                                </span>
                               </div>
 
-                              {/* Wasit Pulldown */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
-                                {canManage ? (
-                                  <select
-                                    className="input"
-                                    value={m.wasit?.id || ''}
-                                    onChange={(e) => handleUpdateMatchWasit(pekan.id, m.id, e.target.value)}
-                                    style={{ padding: '3px 8px', fontSize: '0.8rem', width: 'auto', maxWidth: '200px' }}
-                                  >
-                                    <option value="">-- Pilih Wasit (Pemain) --</option>
-                                    {(league.peserta || []).map(p => (
-                                      <option key={p.id} value={p.id}>
-                                        {p.nama} ({p.namaPTM})
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
-                                    {m.wasit?.nama ? `${m.wasit.nama} (${m.wasit.namaPTM})` : 'Belum ditentukan'}
-                                  </span>
-                                )}
+                                <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
+                                  {m.wasit?.nama ? `${m.wasit.nama} (${m.wasit.namaPTM})` : 'Tanpa Wasit'}
+                                </span>
                               </div>
                             </div>
 
@@ -1591,106 +2051,46 @@ const LeagueDetail = () => {
                               flexWrap: 'wrap',
                               gap: '12px'
                             }}>
-                              {/* Player 1 Selection / Display */}
-                              <div style={{ flex: 1, minWidth: '180px' }}>
-                                {canManage ? (
-                                  <div>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: '3px' }}>
-                                      PEMAIN 1 {isP1Winner && '👑 (Menang)'}
-                                    </label>
-                                    <select
-                                      className="input"
-                                      value={m.peserta1?.id || ''}
-                                      onChange={(e) => handleUpdateMatchPlayer(pekan.id, m.id, 1, e.target.value)}
-                                      style={{
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem',
-                                        borderColor: isP1Winner ? 'var(--primary-color)' : 'var(--border-light)'
-                                      }}
-                                    >
-                                      {(league.peserta || []).map(p => (
-                                        <option key={p.id} value={p.id}>
-                                          {p.nama} ({p.namaPTM})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                ) : (
-                                  <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontWeight: isP1Winner ? 'bold' : '500', color: isP1Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '0.95rem' }}>
-                                      {isP1Winner && '👑 '} {m.peserta1?.nama}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                      {m.peserta1?.namaPTM}
-                                    </div>
-                                  </div>
-                                )}
+                              {/* Player 1 */}
+                              <div style={{ flex: 1, minWidth: '160px', textAlign: 'right' }}>
+                                <div style={{ fontWeight: isP1Winner ? 'bold' : '500', color: isP1Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '1rem' }}>
+                                  {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                  {m.peserta1?.namaPTM || '-'} {m.peserta1?.divisi ? `(Div ${m.peserta1.divisi})` : ''}
+                                </div>
                               </div>
 
-                              {/* Score / VS Display Box */}
+                              {/* Score Box */}
                               <div style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
-                                minWidth: '110px',
-                                padding: '6px 14px',
+                                minWidth: '100px',
+                                padding: '6px 16px',
                                 background: 'var(--bg-surface)',
                                 borderRadius: '8px',
                                 border: '1px solid var(--border-light)'
                               }}>
-                                {m.selesai ? (
-                                  <>
-                                    <div style={{ fontSize: '1.3rem', fontWeight: 'bold', letterSpacing: '2px', color: 'var(--text-primary)' }}>
-                                      {p1Sets} - {p2Sets}
-                                    </div>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                      {m.skor.map(s => `${s[0]}-${s[1]}`).join(', ')}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div style={{ fontSize: '0.85rem', color: 'var(--warning-color)', fontWeight: 'bold' }}>
-                                    VS
-                                  </div>
-                                )}
+                                <div style={{ fontSize: '1.4rem', fontWeight: '900', letterSpacing: '2px', color: 'var(--text-primary)' }}>
+                                  {p1Sets} - {p2Sets}
+                                </div>
+                                <span style={{ fontSize: '0.68rem', color: 'var(--success-color)', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                  Selesai
+                                </span>
                               </div>
 
-                              {/* Player 2 Selection / Display */}
-                              <div style={{ flex: 1, minWidth: '180px' }}>
-                                {canManage ? (
-                                  <div>
-                                    <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--secondary-color)', fontWeight: 'bold', marginBottom: '3px' }}>
-                                      PEMAIN 2 {isP2Winner && '👑 (Menang)'}
-                                    </label>
-                                    <select
-                                      className="input"
-                                      value={m.peserta2?.id || ''}
-                                      onChange={(e) => handleUpdateMatchPlayer(pekan.id, m.id, 2, e.target.value)}
-                                      style={{
-                                        fontWeight: 'bold',
-                                        fontSize: '0.9rem',
-                                        borderColor: isP2Winner ? 'var(--secondary-color)' : 'var(--border-light)'
-                                      }}
-                                    >
-                                      {(league.peserta || []).map(p => (
-                                        <option key={p.id} value={p.id}>
-                                          {p.nama} ({p.namaPTM})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                ) : (
-                                  <div style={{ textAlign: 'left' }}>
-                                    <div style={{ fontWeight: isP2Winner ? 'bold' : '500', color: isP2Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '0.95rem' }}>
-                                      {m.peserta2?.nama} {isP2Winner && ' 👑'}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                      {m.peserta2?.namaPTM}
-                                    </div>
-                                  </div>
-                                )}
+                              {/* Player 2 */}
+                              <div style={{ flex: 1, minWidth: '160px', textAlign: 'left' }}>
+                                <div style={{ fontWeight: isP2Winner ? 'bold' : '500', color: isP2Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '1rem' }}>
+                                  {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                  {m.peserta2?.namaPTM || '-'} {m.peserta2?.divisi ? `(Div ${m.peserta2.divisi})` : ''}
+                                </div>
                               </div>
 
-                              {/* Action Buttons for Match */}
+                              {/* Action Buttons */}
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 {m.fotoBukti && (
                                   <button
@@ -1715,10 +2115,10 @@ const LeagueDetail = () => {
                                 {canManage && (
                                   <button
                                     onClick={() => handleOpenScoreModal(pekan, m)}
-                                    className={`btn btn-sm ${m.selesai ? 'btn-secondary' : 'btn-primary'}`}
+                                    className="btn btn-sm btn-secondary"
                                     style={{ fontSize: '0.8rem', padding: '6px 12px' }}
                                   >
-                                    {m.selesai ? '✏️ Edit Skor' : '⚡ Input Skor'}
+                                    ✏️ Edit Skor
                                   </button>
                                 )}
                                 <button
@@ -1729,6 +2129,17 @@ const LeagueDetail = () => {
                                 >
                                   📺 Scoreboard
                                 </button>
+                                {canManage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMatch(pekan.id, m.id)}
+                                    className="btn btn-secondary btn-sm"
+                                    title="Hapus Hasil Pertandingan"
+                                    style={{ fontSize: '0.8rem', padding: '6px 8px', color: 'var(--danger-color)' }}
+                                  >
+                                    🗑️
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1754,64 +2165,6 @@ const LeagueDetail = () => {
                           <span>☕</span> {m.catatan}
                         </div>
                       ))}
-
-                      {/* Controls to expand remaining draft matches or add new match */}
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: '10px',
-                        paddingTop: '8px',
-                        borderTop: '1px dashed var(--border-light)'
-                      }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          {remainingMatches.length > numUnplayedToShow && !isAllShown && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => setExtraSlotsCount(prev => ({ ...prev, [pekan.id]: (prev[pekan.id] || 1) + 1 }))}
-                                className="btn btn-secondary btn-sm"
-                                style={{ fontSize: '0.8rem' }}
-                              >
-                                ➕ Buka 1 Kartu Jadwal Lagi
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setShowAllDraftMatches(prev => ({ ...prev, [pekan.id]: true }))}
-                                className="btn btn-secondary btn-sm"
-                                style={{ fontSize: '0.8rem' }}
-                              >
-                                📋 Tampilkan Semua ({activeMatches.length}) Partai
-                              </button>
-                              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                                ({remainingMatches.length - numUnplayedToShow} partai antrean belum tampil)
-                              </span>
-                            </>
-                          )}
-                          {isAllShown && (
-                            <button
-                              type="button"
-                              onClick={() => setShowAllDraftMatches(prev => ({ ...prev, [pekan.id]: false }))}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.8rem' }}
-                            >
-                              🔼 Ciutkan (Hanya Tampil Aktif + 1 Kartu)
-                            </button>
-                          )}
-                        </div>
-
-                        {canManage && (
-                          <button
-                            type="button"
-                            onClick={() => handleAddNewMatchToPekan(pekan.id)}
-                            className="btn btn-primary btn-sm"
-                            style={{ fontSize: '0.8rem' }}
-                          >
-                            ➕ Tambah Partai Baru Manual
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 );
@@ -2072,41 +2425,180 @@ const LeagueDetail = () => {
               </div>
             </div>
 
-            {/* Set by Set inputs */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                Skor Per Set ({league.formatSet === 'best_of_3' ? 'Best of 3 Sets' : 'Best of 5 Sets'}):
+            {/* Set Score Inputs Box */}
+            <div style={{
+              background: 'var(--bg-surface-elevated)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '18px 16px',
+              marginBottom: '16px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Jumlah Set yang Dimenangkan ({league.formatSet === 'best_of_3' ? 'Best of 3 Sets' : 'Best of 5 Sets'})
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {scores.map((set, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                    <span style={{ width: '60px', fontWeight: 'bold', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                      Set {idx + 1}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      className="input"
-                      placeholder="0"
-                      value={set[0]}
-                      onChange={(e) => handleScoreChange(idx, 0, e.target.value)}
-                      style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}
-                    />
-                    <span style={{ color: 'var(--text-muted)' }}>-</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="99"
-                      className="input"
-                      placeholder="0"
-                      value={set[1]}
-                      onChange={(e) => handleScoreChange(idx, 1, e.target.value)}
-                      style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}
-                    />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                {/* Pemain 1 Set Input */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.95rem',
+                    color: (parseInt(modalSet1) > parseInt(modalSet2)) ? 'var(--color-success)' : 'var(--primary-color)',
+                    marginBottom: '8px',
+                    minHeight: '2.4em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1.2'
+                  }}>
+                    {league.peserta?.find(p => p.id === modalPeserta1Id)?.nama || activeMatch.peserta1?.nama || 'Pemain 1'}
                   </div>
-                ))}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', fontWeight: 'bold' }}
+                      onClick={() => setModalSet1(String(Math.max(0, (parseInt(modalSet1) || 0) - 1)))}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="9"
+                      className="input"
+                      style={{
+                        width: '64px',
+                        height: '52px',
+                        fontSize: '1.8rem',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        color: (parseInt(modalSet1) > parseInt(modalSet2)) ? 'var(--color-success)' : 'var(--primary-color)'
+                      }}
+                      value={modalSet1}
+                      onChange={(e) => setModalSet1(e.target.value)}
+                      placeholder="0"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', fontWeight: 'bold' }}
+                      onClick={() => setModalSet1(String((parseInt(modalSet1) || 0) + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Set Menang</div>
+                </div>
+
+                {/* VS Divider */}
+                <div style={{ fontSize: '1.4rem', fontWeight: '900', color: 'var(--text-muted)', padding: '0 4px', marginTop: '16px' }}>
+                  :
+                </div>
+
+                {/* Pemain 2 Set Input */}
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{
+                    fontWeight: 'bold',
+                    fontSize: '0.95rem',
+                    color: (parseInt(modalSet2) > parseInt(modalSet1)) ? 'var(--color-success)' : 'var(--secondary-color)',
+                    marginBottom: '8px',
+                    minHeight: '2.4em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1.2'
+                  }}>
+                    {league.peserta?.find(p => p.id === modalPeserta2Id)?.nama || activeMatch.peserta2?.nama || 'Pemain 2'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', fontWeight: 'bold' }}
+                      onClick={() => setModalSet2(String(Math.max(0, (parseInt(modalSet2) || 0) - 1)))}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="9"
+                      className="input"
+                      style={{
+                        width: '64px',
+                        height: '52px',
+                        fontSize: '1.8rem',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        color: (parseInt(modalSet2) > parseInt(modalSet1)) ? 'var(--color-success)' : 'var(--secondary-color)'
+                      }}
+                      value={modalSet2}
+                      onChange={(e) => setModalSet2(e.target.value)}
+                      placeholder="0"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '36px', height: '36px', padding: 0, fontSize: '1.2rem', fontWeight: 'bold' }}
+                      onClick={() => setModalSet2(String((parseInt(modalSet2) || 0) + 1))}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Set Menang</div>
+                </div>
               </div>
+
+              {/* Quick Preset Buttons */}
+              <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-light)', paddingTop: '10px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Pilihan Cepat Skor Set:</div>
+                <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {(league.formatSet === 'best_of_3' 
+                    ? [[2, 0], [2, 1], [1, 2], [0, 2]]
+                    : [[3, 0], [3, 1], [3, 2], [2, 3], [1, 3], [0, 3]]
+                  ).map(([p1, p2]) => (
+                    <button
+                      key={`${p1}-${p2}`}
+                      type="button"
+                      onClick={() => {
+                        setModalSet1(String(p1));
+                        setModalSet2(String(p2));
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '4px 10px',
+                        background: (parseInt(modalSet1) === p1 && parseInt(modalSet2) === p2) ? 'var(--primary-color)' : undefined,
+                        color: (parseInt(modalSet1) === p1 && parseInt(modalSet2) === p2) ? '#080b16' : undefined,
+                        fontWeight: (parseInt(modalSet1) === p1 && parseInt(modalSet2) === p2) ? 'bold' : 'normal'
+                      }}
+                    >
+                      {p1} - {p2}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {modalSet1 !== '' && modalSet2 !== '' && parseInt(modalSet1) !== parseInt(modalSet2) && (
+                <div style={{
+                  marginTop: '14px',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: 'rgba(16,185,129,0.12)',
+                  border: '1px solid var(--color-success)',
+                  textAlign: 'center',
+                  color: 'var(--color-success)',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem'
+                }}>
+                  🏆 Pemenang: {parseInt(modalSet1) > parseInt(modalSet2) 
+                    ? (league.peserta?.find(p => p.id === modalPeserta1Id)?.nama || activeMatch.peserta1?.nama || 'Pemain 1')
+                    : (league.peserta?.find(p => p.id === modalPeserta2Id)?.nama || activeMatch.peserta2?.nama || 'Pemain 2')
+                  } ({modalSet1} - {modalSet2})
+                </div>
+              )}
             </div>
 
             {/* Upload Foto Bukti Pertandingan */}
@@ -2190,7 +2682,12 @@ const LeagueDetail = () => {
               <button type="button" onClick={() => setShowScoreModal(false)} className="btn btn-secondary">
                 Batal
               </button>
-              <button type="button" onClick={handleSaveScore} className="btn btn-primary" disabled={isCompressingFoto}>
+              <button 
+                type="button" 
+                onClick={handleSaveScore} 
+                className="btn btn-primary" 
+                disabled={isCompressingFoto || modalSet1 === '' || modalSet2 === '' || parseInt(modalSet1) === parseInt(modalSet2)}
+              >
                 💾 Simpan Skor
               </button>
             </div>

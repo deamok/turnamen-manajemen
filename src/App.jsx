@@ -25,18 +25,14 @@ function App() {
           <main>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/pemain" element={<PlayerManagement />} />
-              <Route path="/turnamen/baru" element={<CreateTournament />} />
-              <Route path="/turnamen/:id" element={<TournamentDetail />} />
+              <Route path="/" element={<LeagueList />} />
               <Route path="/liga" element={<LeagueList />} />
               <Route path="/liga/baru" element={<CreateLeague />} />
               <Route path="/liga/:id" element={<LeagueDetail />} />
-              <Route path="/persahabatan" element={<FriendlyMatchList />} />
-              <Route path="/persahabatan/baru" element={<CreateFriendlyMatch />} />
-              <Route path="/persahabatan/:id" element={<FriendlyMatchDetail />} />
+              <Route path="/pemain" element={<PlayerManagement />} />
+              <Route path="/turnamen/baru" element={<CreateTournament />} />
+              <Route path="/turnamen/:id" element={<TournamentDetail />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/jadwal" element={<Jadwal />} />
               <Route path="/users" element={<UserManagement />} />
             </Routes>
           </main>

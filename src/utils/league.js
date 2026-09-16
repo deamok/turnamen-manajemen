@@ -1,4 +1,4 @@
-import { generateId, acakArray, formatRentangTanggal } from './helpers';
+import { generateId, acakArray, formatRentangTanggal, parseMatchScore } from './helpers';
 import { tentukanPemenang } from './tournament';
 
 /**
@@ -219,29 +219,13 @@ export function hitungKlasemenLiga(pesertaList, jadwal = [], options = {}) {
         standingsMap[p1Id].main += 1;
         standingsMap[p2Id].main += 1;
 
-        let p1Set = 0;
-        let p2Set = 0;
-        let p1Points = 0;
-        let p2Points = 0;
-
-        (match.skor || []).forEach(set => {
-          const s1 = parseInt(set[0]) || 0;
-          const s2 = parseInt(set[1]) || 0;
-          p1Points += s1;
-          p2Points += s2;
-          if (s1 > s2) p1Set++;
-          else if (s2 > s1) p2Set++;
-        });
+        const [p1Set, p2Set] = parseMatchScore(match.skor);
 
         standingsMap[p1Id].setMenang += p1Set;
         standingsMap[p1Id].setKalah += p2Set;
-        standingsMap[p1Id].poinMenang += p1Points;
-        standingsMap[p1Id].poinKalah += p2Points;
 
         standingsMap[p2Id].setMenang += p2Set;
         standingsMap[p2Id].setKalah += p1Set;
-        standingsMap[p2Id].poinMenang += p2Points;
-        standingsMap[p2Id].poinKalah += p1Points;
 
         if (match.pemenang === p1Id) {
           standingsMap[p1Id].menang += 1;
@@ -322,10 +306,8 @@ export function calculateLeagueStats(liga) {
         totalMatches++;
         if (m.selesai) {
           finishedMatches++;
-          (m.skor || []).forEach(s => {
-            totalSets++;
-            totalPoints += (parseInt(s[0]) || 0) + (parseInt(s[1]) || 0);
-          });
+          const [s1, s2] = parseMatchScore(m.skor);
+          totalSets += (s1 + s2);
         }
       }
     });

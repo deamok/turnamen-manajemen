@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTurnamen } from '../utils/storage';
 import { getNamaPeserta } from '../utils/tournament';
+import { parseMatchScore, formatMatchScore } from '../utils/helpers';
 import { useAuth } from '../contexts/AuthContext';
 
 const Jadwal = () => {
@@ -129,14 +130,7 @@ const Jadwal = () => {
   // Hitung jumlah skor set yang dimenangkan masing-masing
   const getSetsWon = (match, playerNum) => {
     if (!match.selesai || !match.skor) return 0;
-    let p1Wins = 0;
-    let p2Wins = 0;
-    match.skor.forEach(s => {
-      const s1 = parseInt(s[0]) || 0;
-      const s2 = parseInt(s[1]) || 0;
-      if (s1 > s2) p1Wins++;
-      else if (s2 > s1) p2Wins++;
-    });
+    const [p1Wins, p2Wins] = parseMatchScore(match.skor);
     return playerNum === 1 ? p1Wins : p2Wins;
   };
 
@@ -480,33 +474,25 @@ const Jadwal = () => {
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em'
                 }}>
-                  Rincian Skor Per Set
+                  Hasil / Skor Pertandingan
                 </h4>
 
-                {detailMatch.skor && detailMatch.skor.length > 0 ? (
+                {detailMatch.skor && (Array.isArray(detailMatch.skor) ? detailMatch.skor.length > 0 : true) ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {detailMatch.skor.map((set, idx) => {
-                      const s1 = parseInt(set[0]) || 0;
-                      const s2 = parseInt(set[1]) || 0;
-                      return (
-                        <div key={idx} style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '10px 15px',
-                          background: 'rgba(255,255,255,0.02)',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border-light)'
-                        }}>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Set {idx + 1}</span>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                            <span style={{ color: s1 > s2 ? 'var(--primary-color)' : 'inherit' }}>{s1}</span>
-                            <span style={{ color: 'var(--text-muted)', margin: '0 10px' }}>-</span>
-                            <span style={{ color: s2 > s1 ? 'var(--primary-color)' : 'inherit' }}>{s2}</span>
-                          </span>
-                        </div>
-                      );
-                    })}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 18px',
+                      background: 'rgba(255,255,255,0.03)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-light)'
+                    }}>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Skor Set</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '1.4rem' }}>
+                        {formatMatchScore(detailMatch.skor)}
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '20px 0', fontSize: '0.9rem' }}>

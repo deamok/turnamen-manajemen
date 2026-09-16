@@ -147,3 +147,60 @@ export function compressImage(file, maxBytes = 130 * 1024) {
   });
 }
 
+/**
+ * Parse match score to [setsPlayer1, setsPlayer2]
+ * Supports set-only format [3, 1] as well as legacy formats [[11, 9], ...] and [{a: 11, b: 9}]
+ */
+export function parseMatchScore(skor) {
+  if (!skor) return [0, 0];
+  if (!Array.isArray(skor)) return [0, 0];
+  if (skor.length === 0) return [0, 0];
+
+  // Case 1: Simple 1D array of 2 numbers [set1, set2] e.g. [3, 1]
+  if (skor.length === 2 && typeof skor[0] !== 'object' && !Array.isArray(skor[0])) {
+    return [parseInt(skor[0]) || 0, parseInt(skor[1]) || 0];
+  }
+
+  // Case 2: Nested array [[3, 1]] or [[11, 9], [8, 11], [11, 5]]
+  if (Array.isArray(skor[0])) {
+    if (skor.length === 1 && (parseInt(skor[0][0]) <= 7 && parseInt(skor[0][1]) <= 7)) {
+      return [parseInt(skor[0][0]) || 0, parseInt(skor[0][1]) || 0];
+    }
+    let s1 = 0, s2 = 0;
+    skor.forEach(set => {
+      const p1 = parseInt(set[0]) || 0;
+      const p2 = parseInt(set[1]) || 0;
+      if (p1 > p2) s1++;
+      else if (p2 > p1) s2++;
+    });
+    return [s1, s2];
+  }
+
+  // Case 3: Array of objects [{a: 3, b: 1}] or [{a: 11, b: 9}]
+  if (typeof skor[0] === 'object') {
+    if (skor.length === 1 && ((skor[0].a ?? 0) <= 7 && (skor[0].b ?? 0) <= 7)) {
+      return [parseInt(skor[0].a) || 0, parseInt(skor[0].b) || 0];
+    }
+    let s1 = 0, s2 = 0;
+    skor.forEach(set => {
+      const p1 = parseInt(set.a ?? set[0]) || 0;
+      const p2 = parseInt(set.b ?? set[1]) || 0;
+      if (p1 > p2) s1++;
+      else if (p2 > p1) s2++;
+    });
+    return [s1, s2];
+  }
+
+  return [0, 0];
+}
+
+/**
+ * Format match score for display, e.g. "3 - 1"
+ */
+export function formatMatchScore(skor) {
+  if (!skor) return '-';
+  const [s1, s2] = parseMatchScore(skor);
+  if (s1 === 0 && s2 === 0 && (!Array.isArray(skor) || skor.length === 0)) return '-';
+  return `${s1} - ${s2}`;
+}
+
