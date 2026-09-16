@@ -195,6 +195,11 @@ const LeagueDetail = () => {
 
   const canManage = isSuperAdmin || (currentUser && league?.createdBy === currentUser.uid);
 
+  // Daftar peserta diurutkan berdasarkan abjad (A-Z) untuk seluruh droplist input
+  const sortedPeserta = [...(league?.peserta || [])].sort((a, b) =>
+    (a.nama || '').localeCompare(b.nama || '', undefined, { sensitivity: 'base' })
+  );
+
   // Open Score Modal
   const handleOpenScoreModal = (pekan, match) => {
     if (!canManage) return;
@@ -1696,7 +1701,7 @@ const LeagueDetail = () => {
                       style={{ fontSize: '0.82rem', padding: '6px 8px', width: '100%' }}
                     >
                       <option value="">-- Kosong (Tanpa Wasit) --</option>
-                      {(league.peserta || []).map(p => (
+                      {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id}>
                           {p.nama} ({p.namaPTM})
                         </option>
@@ -1730,7 +1735,7 @@ const LeagueDetail = () => {
                       required
                     >
                       <option value="">-- Pilih Pemain 1 --</option>
-                      {(league.peserta || []).map(p => (
+                      {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta2Id}>
                           {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
                         </option>
@@ -1802,7 +1807,7 @@ const LeagueDetail = () => {
                       required
                     >
                       <option value="">-- Pilih Pemain 2 --</option>
-                      {(league.peserta || []).map(p => (
+                      {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta1Id}>
                           {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
                         </option>
@@ -2321,7 +2326,7 @@ const LeagueDetail = () => {
                   onChange={(e) => setModalPeserta1Id(e.target.value)}
                   style={{ fontWeight: 'bold', fontSize: '0.85rem' }}
                 >
-                  {(league.peserta || []).map(p => (
+                  {sortedPeserta.map(p => (
                     <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
                   ))}
                 </select>
@@ -2336,7 +2341,7 @@ const LeagueDetail = () => {
                   onChange={(e) => setModalPeserta2Id(e.target.value)}
                   style={{ fontWeight: 'bold', fontSize: '0.85rem' }}
                 >
-                  {(league.peserta || []).map(p => (
+                  {sortedPeserta.map(p => (
                     <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
                   ))}
                 </select>
@@ -2364,7 +2369,7 @@ const LeagueDetail = () => {
                   style={{ fontSize: '0.8rem' }}
                 >
                   <option value="">-- Tanpa Wasit --</option>
-                  {(league.peserta || []).map(p => (
+                  {sortedPeserta.map(p => (
                     <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
                   ))}
                 </select>
