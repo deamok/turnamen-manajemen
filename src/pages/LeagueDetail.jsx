@@ -1704,41 +1704,41 @@ const LeagueDetail = () => {
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
-                  gap: '12px',
+                  gap: '8px',
                   alignItems: 'center',
-                  padding: '16px',
+                  padding: '12px',
                   background: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-md)',
                   border: '1px solid var(--border-light)',
-                  marginBottom: '14px'
+                  marginBottom: '12px'
                 }}>
                   {/* Pemain 1 Box */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: '6px' }}>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--primary-color)', fontWeight: 'bold', marginBottom: '4px' }}>
                       🔵 PEMAIN 1
                     </label>
                     <select
                       className="input"
                       value={inputPeserta1Id}
                       onChange={(e) => setInputPeserta1Id(e.target.value)}
-                      style={{ fontSize: '0.85rem', padding: '8px 10px', width: '100%', marginBottom: '8px', fontWeight: 'bold' }}
+                      style={{ fontSize: '0.8rem', padding: '6px 8px', width: '100%', maxWidth: '100%', marginBottom: '6px', fontWeight: 'bold' }}
                       required
                     >
                       <option value="">-- Pilih Pemain 1 --</option>
                       {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta2Id}>
-                          {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
+                          {p.nama} ({p.namaPTM}) - Div {p.divisi}
                         </option>
                       ))}
                     </select>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Set Menang:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Set:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          style={{ width: '26px', height: '26px', padding: 0, fontSize: '0.85rem' }}
                           onClick={() => setInputSet1(String(Math.max(0, (parseInt(inputSet1) || 0) - 1)))}
                         >
                           -
@@ -1751,13 +1751,13 @@ const LeagueDetail = () => {
                           value={inputSet1}
                           onChange={(e) => setInputSet1(e.target.value)}
                           placeholder="0"
-                          style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', padding: '4px' }}
+                          style={{ width: '38px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.95rem', padding: '2px 4px' }}
                           required
                         />
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          style={{ width: '26px', height: '26px', padding: 0, fontSize: '0.85rem' }}
                           onClick={() => setInputSet1(String((parseInt(inputSet1) || 0) + 1))}
                         >
                           +
@@ -1772,45 +1772,45 @@ const LeagueDetail = () => {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '8px 12px',
+                    padding: '6px 8px',
                     background: 'rgba(0,0,0,0.1)',
                     borderRadius: '8px'
                   }}>
-                    <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--warning-color)' }}>VS</span>
+                    <span style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--warning-color)' }}>VS</span>
                     {inputSet1 !== '' && inputSet2 !== '' && (
-                      <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '2px' }}>
                         {inputSet1} - {inputSet2}
                       </span>
                     )}
                   </div>
 
                   {/* Pemain 2 Box */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--secondary-color)', fontWeight: 'bold', marginBottom: '6px' }}>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--secondary-color)', fontWeight: 'bold', marginBottom: '4px' }}>
                       🟣 PEMAIN 2
                     </label>
                     <select
                       className="input"
                       value={inputPeserta2Id}
                       onChange={(e) => setInputPeserta2Id(e.target.value)}
-                      style={{ fontSize: '0.85rem', padding: '8px 10px', width: '100%', marginBottom: '8px', fontWeight: 'bold' }}
+                      style={{ fontSize: '0.8rem', padding: '6px 8px', width: '100%', maxWidth: '100%', marginBottom: '6px', fontWeight: 'bold' }}
                       required
                     >
                       <option value="">-- Pilih Pemain 2 --</option>
                       {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta1Id}>
-                          {p.nama} ({p.namaPTM}) - Divisi {p.divisi}
+                          {p.nama} ({p.namaPTM}) - Div {p.divisi}
                         </option>
                       ))}
                     </select>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Set Menang:</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Set:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          style={{ width: '26px', height: '26px', padding: 0, fontSize: '0.85rem' }}
                           onClick={() => setInputSet2(String(Math.max(0, (parseInt(inputSet2) || 0) - 1)))}
                         >
                           -
@@ -1823,13 +1823,13 @@ const LeagueDetail = () => {
                           value={inputSet2}
                           onChange={(e) => setInputSet2(e.target.value)}
                           placeholder="0"
-                          style={{ width: '45px', textAlign: 'center', fontWeight: 'bold', fontSize: '1rem', padding: '4px' }}
+                          style={{ width: '38px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.95rem', padding: '2px 4px' }}
                           required
                         />
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          style={{ width: '28px', height: '28px', padding: 0, fontSize: '0.9rem' }}
+                          style={{ width: '26px', height: '26px', padding: 0, fontSize: '0.85rem' }}
                           onClick={() => setInputSet2(String((parseInt(inputSet2) || 0) + 1))}
                         >
                           +
@@ -1998,13 +1998,13 @@ const LeagueDetail = () => {
                           <div
                             key={m.id}
                             style={{
-                              padding: '16px 18px',
+                              padding: '12px 14px',
                               borderRadius: 'var(--radius-md)',
                               background: 'var(--bg-surface-elevated)',
                               border: '1px solid var(--border-light)',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '12px'
+                              gap: '10px'
                             }}
                           >
                             {/* Top Row: Meja, Tanggal, Jam, Wasit */}
@@ -2013,12 +2013,12 @@ const LeagueDetail = () => {
                               justifyContent: 'space-between',
                               alignItems: 'center',
                               flexWrap: 'wrap',
-                              gap: '10px',
-                              paddingBottom: '10px',
+                              gap: '6px 10px',
+                              paddingBottom: '8px',
                               borderBottom: '1px solid var(--border-light)',
-                              fontSize: '0.82rem'
+                              fontSize: '0.78rem'
                             }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
                                   🏓 {m.meja || 'Meja 1'}
                                 </span>
@@ -2026,32 +2026,38 @@ const LeagueDetail = () => {
                                   📅 {m.tanggal ? formatTanggal(m.tanggal) : weekDateRange}
                                 </span>
                                 <span style={{ color: 'var(--text-secondary)' }}>
-                                  ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Waktu Bebas'}
+                                  ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Bebas'}
                                 </span>
                               </div>
 
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
                                 <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
-                                  {m.wasit?.nama ? `${m.wasit.nama} (${m.wasit.namaPTM})` : 'Tanpa Wasit'}
+                                  {m.wasit?.nama ? `${m.wasit.nama} (${m.wasit.namaPTM || '-'})` : 'Tanpa Wasit'}
                                 </span>
                               </div>
                             </div>
 
-                            {/* Middle Row: Player 1 vs Player 2 */}
+                            {/* Middle Row: Player 1 vs Player 2 (3-Column Grid for perfect horizontal alignment on all screen sizes) */}
                             <div style={{
-                              display: 'flex',
+                              display: 'grid',
+                              gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
                               alignItems: 'center',
-                              justifyContent: 'space-between',
-                              flexWrap: 'wrap',
-                              gap: '12px'
+                              gap: '8px',
+                              padding: '4px 0'
                             }}>
                               {/* Player 1 */}
-                              <div style={{ flex: 1, minWidth: '160px', textAlign: 'right' }}>
-                                <div style={{ fontWeight: isP1Winner ? 'bold' : '500', color: isP1Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '1rem' }}>
+                              <div style={{ textAlign: 'right', minWidth: 0, overflow: 'hidden' }}>
+                                <div style={{
+                                  fontWeight: isP1Winner ? 'bold' : '600',
+                                  color: isP1Winner ? 'var(--primary-color)' : 'var(--text-primary)',
+                                  fontSize: '0.92rem',
+                                  lineHeight: '1.25',
+                                  wordBreak: 'break-word'
+                                }}>
                                   {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                                 </div>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
                                   {m.peserta1?.namaPTM || '-'} {m.peserta1?.divisi ? `(Div ${m.peserta1.divisi})` : ''}
                                 </div>
                               </div>
@@ -2061,81 +2067,97 @@ const LeagueDetail = () => {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
-                                minWidth: '100px',
-                                padding: '6px 16px',
+                                justifyContent: 'center',
+                                minWidth: '64px',
+                                padding: '4px 10px',
                                 background: 'var(--bg-surface)',
                                 borderRadius: '8px',
-                                border: '1px solid var(--border-light)'
+                                border: '1px solid var(--border-light)',
+                                flexShrink: 0
                               }}>
-                                <div style={{ fontSize: '1.4rem', fontWeight: '900', letterSpacing: '2px', color: 'var(--text-primary)' }}>
+                                <div style={{ fontSize: '1.25rem', fontWeight: '900', letterSpacing: '1.5px', color: 'var(--text-primary)', lineHeight: 1 }}>
                                   {p1Sets} - {p2Sets}
                                 </div>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--success-color)', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                                <span style={{ fontSize: '0.62rem', color: 'var(--success-color)', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>
                                   Selesai
                                 </span>
                               </div>
 
                               {/* Player 2 */}
-                              <div style={{ flex: 1, minWidth: '160px', textAlign: 'left' }}>
-                                <div style={{ fontWeight: isP2Winner ? 'bold' : '500', color: isP2Winner ? 'var(--primary-color)' : 'var(--text-primary)', fontSize: '1rem' }}>
+                              <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
+                                <div style={{
+                                  fontWeight: isP2Winner ? 'bold' : '600',
+                                  color: isP2Winner ? 'var(--primary-color)' : 'var(--text-primary)',
+                                  fontSize: '0.92rem',
+                                  lineHeight: '1.25',
+                                  wordBreak: 'break-word'
+                                }}>
                                   {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                                 </div>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
                                   {m.peserta2?.namaPTM || '-'} {m.peserta2?.divisi ? `(Div ${m.peserta2.divisi})` : ''}
                                 </div>
                               </div>
+                            </div>
 
-                              {/* Action Buttons */}
-                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                {m.fotoBukti && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewImage(m.fotoBukti)}
-                                    className="btn btn-sm btn-secondary"
-                                    style={{
-                                      fontSize: '0.8rem',
-                                      padding: '6px 10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      background: 'rgba(0, 200, 255, 0.1)',
-                                      borderColor: 'rgba(0, 200, 255, 0.3)',
-                                      color: 'var(--primary-color)'
-                                    }}
-                                    title="Lihat Foto Bukti Pertandingan"
-                                  >
-                                    📷 Bukti
-                                  </button>
-                                )}
-                                {canManage && (
-                                  <button
-                                    onClick={() => handleOpenScoreModal(pekan, m)}
-                                    className="btn btn-sm btn-secondary"
-                                    style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-                                  >
-                                    ✏️ Edit Skor
-                                  </button>
-                                )}
+                            {/* Bottom Row: Action Buttons */}
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'flex-end',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '6px',
+                              paddingTop: '8px',
+                              borderTop: '1px solid var(--border-light)'
+                            }}>
+                              {m.fotoBukti && (
                                 <button
-                                  onClick={() => handleOpenScoreboard(pekan, m)}
-                                  className="btn btn-secondary btn-sm"
-                                  title="Papan Skor Digital Langsung"
-                                  style={{ fontSize: '0.8rem', padding: '6px 10px' }}
+                                  type="button"
+                                  onClick={() => setPreviewImage(m.fotoBukti)}
+                                  className="btn btn-sm btn-secondary"
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    padding: '4px 8px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: 'rgba(0, 200, 255, 0.1)',
+                                    borderColor: 'rgba(0, 200, 255, 0.3)',
+                                    color: 'var(--primary-color)'
+                                  }}
+                                  title="Lihat Foto Bukti Pertandingan"
                                 >
-                                  📺 Scoreboard
+                                  📷 Bukti
                                 </button>
-                                {canManage && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteMatch(pekan.id, m.id)}
-                                    className="btn btn-secondary btn-sm"
-                                    title="Hapus Hasil Pertandingan"
-                                    style={{ fontSize: '0.8rem', padding: '6px 8px', color: 'var(--danger-color)' }}
-                                  >
-                                    🗑️
-                                  </button>
-                                )}
-                              </div>
+                              )}
+                              {canManage && (
+                                <button
+                                  onClick={() => handleOpenScoreModal(pekan, m)}
+                                  className="btn btn-sm btn-secondary"
+                                  style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                                >
+                                  ✏️ Edit Skor
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleOpenScoreboard(pekan, m)}
+                                className="btn btn-secondary btn-sm"
+                                title="Papan Skor Digital Langsung"
+                                style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                              >
+                                📺 Scoreboard
+                              </button>
+                              {canManage && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteMatch(pekan.id, m.id)}
+                                  className="btn btn-secondary btn-sm"
+                                  title="Hapus Hasil Pertandingan"
+                                  style={{ fontSize: '0.75rem', padding: '4px 8px', color: 'var(--danger-color)' }}
+                                >
+                                  🗑️
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
