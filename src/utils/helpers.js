@@ -204,3 +204,13 @@ export function formatMatchScore(skor) {
   return `${s1} - ${s2}`;
 }
 
+/**
+ * Check if a match is truly finished with a valid score (not 0 - 0, has winner, finished = true)
+ */
+export function isMatchFinished(match) {
+  if (!match || match.isBye) return false;
+  const [s1, s2] = parseMatchScore(match.skor);
+  if (s1 === 0 && s2 === 0) return false;
+  return Boolean(match.selesai && match.pemenang && (s1 > 0 || s2 > 0));
+}
+

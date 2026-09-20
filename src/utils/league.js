@@ -1,4 +1,4 @@
-import { generateId, acakArray, formatRentangTanggal, parseMatchScore } from './helpers';
+import { generateId, acakArray, formatRentangTanggal, parseMatchScore, isMatchFinished } from './helpers';
 import { tentukanPemenang } from './tournament';
 
 /**
@@ -210,7 +210,7 @@ export function hitungKlasemenLiga(pesertaList, jadwal = [], options = {}) {
   // Traverse matches in chronological order (by pekan)
   (jadwal || []).forEach(pekan => {
     (pekan.pertandingan || []).forEach(match => {
-      if (match.selesai && match.pemenang && !match.isBye) {
+      if (isMatchFinished(match)) {
         const p1Id = match.peserta1?.id;
         const p2Id = match.peserta2?.id;
 
@@ -299,7 +299,7 @@ export function calculateLeagueStats(liga) {
     (pekan.pertandingan || []).forEach(m => {
       if (!m.isBye) {
         totalMatches++;
-        if (m.selesai) {
+        if (isMatchFinished(m)) {
           finishedMatches++;
           const [s1, s2] = parseMatchScore(m.skor);
           totalSets += (s1 + s2);

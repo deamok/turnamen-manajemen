@@ -4,7 +4,7 @@ import { getLigaById, updateLiga, deleteLiga, getPemain, syncLeaguePlayerToMembe
 import { hitungKlasemenLiga, calculateLeagueStats } from '../utils/league';
 import { tentukanPemenang } from '../utils/tournament';
 import { useAuth } from '../contexts/AuthContext';
-import { formatTanggal, formatRentangTanggal, generateId, compressImage, parseMatchScore } from '../utils/helpers';
+import { formatTanggal, formatRentangTanggal, generateId, compressImage, parseMatchScore, isMatchFinished } from '../utils/helpers';
 
 const badgeColors = {
   '1': 'badge-danger',
@@ -67,6 +67,10 @@ const LeagueDetail = () => {
   // Filter display for draft matches (only active + 1 new card by default)
   const [showAllDraftMatches, setShowAllDraftMatches] = useState({});
   const [extraSlotsCount, setExtraSlotsCount] = useState({});
+
+  // Histori Pertandingan Pemain State
+  const [selectedHistoriPlayerId, setSelectedHistoriPlayerId] = useState('semua');
+  const [historiSortOrder, setHistoriSortOrder] = useState('desc'); // 'desc' (terbaru) | 'asc' (terlama)
 
   // Peserta Management State (matching Member management)
   const [filterPesertaDivisi, setFilterPesertaDivisi] = useState('Semua');
@@ -1136,7 +1140,11 @@ const LeagueDetail = () => {
                 JUARA RESMI LIGA TENIS MEJA
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-                {league.juara.nama} <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>({league.juara.namaPTM})</span>
+                {league.juara.nama} {((league.peserta || []).find(p => p.id === league.juara.id)?.divisi) && (
+                  <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                    (Divisi {((league.peserta || []).find(p => p.id === league.juara.id)?.divisi)})
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1156,6 +1164,7 @@ const LeagueDetail = () => {
           { key: 'klasemen', label: '🏆 Tabel Klasemen', icon: '🏆' },
           { key: 'peserta', label: '👥 Peserta Liga', icon: '👥' },
           { key: 'jadwal', label: '🏓 Hasil Pertandingan', icon: '🏓' },
+          { key: 'histori', label: '📜 Histori', icon: '📜' },
           { key: 'statistik', label: '📊 Statistik & Rekap', icon: '📊' },
           ...(canManage ? [{ key: 'pengaturan', label: '⚙️ Pengaturan Liga', icon: '⚙️' }] : [])
         ].map(tab => (
@@ -1194,16 +1203,16 @@ const LeagueDetail = () => {
 
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.92rem' }}>
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                <th style={{ padding: '14px 10px', textAlign: 'center', width: '55px' }}>Pos</th>
-                <th style={{ padding: '14px 16px' }}>Peserta / Klub</th>
-                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>M</th>
-                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>W</th>
-                <th style={{ padding: '14px 10px', textAlign: 'center', width: '60px' }}>L</th>
-                <th style={{ padding: '14px 14px', textAlign: 'center', width: '110px' }}>Set (W-L)</th>
-                <th style={{ padding: '14px 14px', textAlign: 'center', width: '100px' }}>Sel. Set</th>
-                <th style={{ padding: '14px 16px', textAlign: 'center', width: '90px', color: 'var(--primary-color)', fontWeight: 'bold' }}>PTS</th>
-                <th style={{ padding: '14px 16px', textAlign: 'center', width: '150px' }}>Form (5 Laga)</th>
+              <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                <th style={{ padding: '14px 8px', textAlign: 'center', width: '50px' }}>Pos</th>
+                <th style={{ padding: '14px 16px' }}>Peserta</th>
+                <th style={{ padding: '14px 8px', textAlign: 'center', width: '50px' }}>M</th>
+                <th style={{ padding: '14px 8px', textAlign: 'center', width: '50px' }}>W</th>
+                <th style={{ padding: '14px 8px', textAlign: 'center', width: '50px' }}>L</th>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '90px', whiteSpace: 'nowrap' }}>Set (W-L)</th>
+                <th style={{ padding: '14px 10px', textAlign: 'center', width: '80px', whiteSpace: 'nowrap' }}>Sel. Set</th>
+                <th style={{ padding: '14px 12px', textAlign: 'center', width: '75px', color: 'var(--primary-color)', fontWeight: 'bold' }}>PTS</th>
+                <th style={{ padding: '14px 14px', textAlign: 'center', width: '135px', whiteSpace: 'nowrap' }}>Form (5 Laga)</th>
               </tr>
             </thead>
             <tbody>
@@ -1236,37 +1245,43 @@ const LeagueDetail = () => {
                   rowBg = 'rgba(217, 119, 6, 0.04)';
                 }
 
+                const pMatch = (league.peserta || []).find(p => p.id === row.pesertaId);
+                const div = pMatch?.divisi || row.divisi || '1';
+
                 return (
                   <tr
                     key={row.pesertaId}
                     style={{
                       borderBottom: '1px solid var(--border-light)',
                       background: rowBg,
-                      transition: 'background 0.15s'
+                      transition: 'background 0.15s',
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 'bold' }}>
+                    <td style={{ padding: '14px 8px', textAlign: 'center', fontWeight: 'bold' }}>
                       {posBadge}
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ fontWeight: idx < 3 ? 'bold' : '500', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                        {row.nama}
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {row.namaPTM}
+                    <td style={{ padding: '10px 16px', whiteSpace: 'normal' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', lineHeight: '1.15' }}>
+                        <span style={{ fontWeight: idx < 3 ? 'bold' : '500', color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: '1.15' }}>
+                          {row.nama}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: '1' }}>
+                          (Div {div})
+                        </span>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--text-secondary)' }}>{row.main}</td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--success-color)', fontWeight: 'bold' }}>{row.menang}</td>
-                    <td style={{ padding: '14px 10px', textAlign: 'center', color: 'var(--danger-color)' }}>{row.kalah}</td>
-                    <td style={{ padding: '14px 14px', textAlign: 'center', fontWeight: '500' }}>{row.setMenang} - {row.setKalah}</td>
-                    <td style={{ padding: '14px 14px', textAlign: 'center', fontWeight: 'bold', color: row.selisihSet > 0 ? 'var(--success-color)' : row.selisihSet < 0 ? 'var(--danger-color)' : 'inherit' }}>
+                    <td style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{row.main}</td>
+                    <td style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--success-color)', fontWeight: 'bold' }}>{row.menang}</td>
+                    <td style={{ padding: '14px 8px', textAlign: 'center', color: 'var(--danger-color)' }}>{row.kalah}</td>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: '500' }}>{row.setMenang} - {row.setKalah}</td>
+                    <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 'bold', color: row.selisihSet > 0 ? 'var(--success-color)' : row.selisihSet < 0 ? 'var(--danger-color)' : 'inherit' }}>
                       {row.selisihSet > 0 ? `+${row.selisihSet}` : row.selisihSet}
                     </td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: '1.15rem', fontWeight: '900', color: 'var(--primary-color)' }}>
+                    <td style={{ padding: '14px 12px', textAlign: 'center', fontSize: '1.15rem', fontWeight: '900', color: 'var(--primary-color)' }}>
                       {row.poin}
                     </td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                    <td style={{ padding: '14px 14px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                         {(row.last5Form || []).length === 0 ? (
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>-</span>
@@ -1693,7 +1708,7 @@ const LeagueDetail = () => {
                       <option value="">-- Kosong (Tanpa Wasit) --</option>
                       {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.nama} ({p.namaPTM})
+                          {p.nama} (Div {p.divisi})
                         </option>
                       ))}
                     </select>
@@ -1727,7 +1742,7 @@ const LeagueDetail = () => {
                       <option value="">-- Pilih Pemain 1 --</option>
                       {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta2Id}>
-                          {p.nama} ({p.namaPTM}) - Div {p.divisi}
+                          {p.nama} - Div {p.divisi}
                         </option>
                       ))}
                     </select>
@@ -1799,7 +1814,7 @@ const LeagueDetail = () => {
                       <option value="">-- Pilih Pemain 2 --</option>
                       {sortedPeserta.map(p => (
                         <option key={p.id} value={p.id} disabled={p.id === inputPeserta1Id}>
-                          {p.nama} ({p.namaPTM}) - Div {p.divisi}
+                          {p.nama} - Div {p.divisi}
                         </option>
                       ))}
                     </select>
@@ -1936,7 +1951,7 @@ const LeagueDetail = () => {
               .filter(p => selectedPekan === 'semua' || p.id === selectedPekan)
               .map((pekan, pIdx) => {
                 const pInfo = getPekanInfo(pekan, pIdx);
-                const resultMatches = (pekan.pertandingan || []).filter(m => !m.isBye && (m.selesai || (m.skor && m.skor.length > 0)));
+                const resultMatches = (pekan.pertandingan || []).filter(m => isMatchFinished(m));
                 const byeMatches = (pekan.pertandingan || []).filter(m => m.isBye);
                 const weekDateRange = pInfo.rentang;
 
@@ -2033,7 +2048,7 @@ const LeagueDetail = () => {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
                                 <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
-                                  {m.wasit?.nama ? `${m.wasit.nama} (${m.wasit.namaPTM || '-'})` : 'Tanpa Wasit'}
+                                  {m.wasit?.nama ? (m.wasit.divisi ? `${m.wasit.nama} (Div ${m.wasit.divisi})` : m.wasit.nama) : 'Tanpa Wasit'}
                                 </span>
                               </div>
                             </div>
@@ -2058,7 +2073,7 @@ const LeagueDetail = () => {
                                   {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                                 </div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
-                                  {m.peserta1?.namaPTM || '-'} {m.peserta1?.divisi ? `(Div ${m.peserta1.divisi})` : ''}
+                                  {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
                                 </div>
                               </div>
 
@@ -2095,7 +2110,7 @@ const LeagueDetail = () => {
                                   {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                                 </div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
-                                  {m.peserta2?.namaPTM || '-'} {m.peserta2?.divisi ? `(Div ${m.peserta2.divisi})` : ''}
+                                  {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
                                 </div>
                               </div>
                             </div>
@@ -2190,7 +2205,445 @@ const LeagueDetail = () => {
         </div>
       )}
 
-      {/* TAB 3: STATISTIK */}
+      {/* TAB 3: HISTORI PERTANDINGAN PEMAIN */}
+      {activeTab === 'histori' && (() => {
+        // Collect all played / finished matches across all pekans
+        const allMatchesWithPekan = [];
+        (league.jadwal || []).forEach((pekan, pIdx) => {
+          const pInfo = getPekanInfo(pekan, pIdx);
+          (pekan.pertandingan || []).forEach(m => {
+            if (isMatchFinished(m)) {
+              allMatchesWithPekan.push({
+                ...m,
+                pekanObj: pekan,
+                pekanId: pekan.id,
+                pekanName: pInfo.cleanName,
+                pekanDateRange: pInfo.rentang
+              });
+            }
+          });
+        });
+
+        // Filter by selected player
+        const filteredMatches = allMatchesWithPekan.filter(m => {
+          if (selectedHistoriPlayerId === 'semua') return true;
+          return (
+            (m.peserta1?.id && m.peserta1.id === selectedHistoriPlayerId) ||
+            (m.peserta2?.id && m.peserta2.id === selectedHistoriPlayerId) ||
+            (m.peserta1?.nama && sortedPeserta.find(p => p.id === selectedHistoriPlayerId)?.nama === m.peserta1.nama) ||
+            (m.peserta2?.nama && sortedPeserta.find(p => p.id === selectedHistoriPlayerId)?.nama === m.peserta2.nama)
+          );
+        });
+
+        // Sort by match date & time
+        filteredMatches.sort((a, b) => {
+          const dateA = a.tanggal || '';
+          const dateB = b.tanggal || '';
+          const timeA = (a.jam && a.jam !== 'Bebas') ? a.jam : '00:00';
+          const timeB = (b.jam && b.jam !== 'Bebas') ? b.jam : '00:00';
+          const dtA = `${dateA} ${timeA}`;
+          const dtB = `${dateB} ${timeB}`;
+
+          if (historiSortOrder === 'asc') {
+            return dtA.localeCompare(dtB);
+          } else {
+            return dtB.localeCompare(dtA);
+          }
+        });
+
+        // Find info of selected player for stats header
+        const selectedPlayer = sortedPeserta.find(p => p.id === selectedHistoriPlayerId);
+        const playerStanding = selectedPlayer ? (league.klasemen || []).find(k => k.pesertaId === selectedPlayer.id) : null;
+
+        // Calculate player performance stats
+        let playerWins = 0;
+        let playerLosses = 0;
+        let playerSetsWon = 0;
+        let playerSetsLost = 0;
+
+        if (selectedPlayer) {
+          filteredMatches.forEach(m => {
+            const isP1 = m.peserta1?.id === selectedPlayer.id || m.peserta1?.nama === selectedPlayer.nama;
+            const isP2 = m.peserta2?.id === selectedPlayer.id || m.peserta2?.nama === selectedPlayer.nama;
+            const [p1Sets, p2Sets] = parseMatchScore(m.skor);
+
+            if (isP1) {
+              playerSetsWon += p1Sets;
+              playerSetsLost += p2Sets;
+              if (m.selesai && m.pemenang === m.peserta1?.id) playerWins++;
+              else if (m.selesai && m.pemenang === m.peserta2?.id) playerLosses++;
+            } else if (isP2) {
+              playerSetsWon += p2Sets;
+              playerSetsLost += p1Sets;
+              if (m.selesai && m.pemenang === m.peserta2?.id) playerWins++;
+              else if (m.selesai && m.pemenang === m.peserta1?.id) playerLosses++;
+            }
+          });
+        }
+
+        return (
+          <div>
+            {/* Filter Card: Dropdown Pemain & Urutan */}
+            <div className="card" style={{
+              padding: '16px 20px',
+              marginBottom: '1.5rem',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-md)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                {/* Pulldown Dropdown Nama Pemain */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
+                  <span style={{ fontSize: '1.3rem' }}>👤</span>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Pilih Pemain (Urut Abjad):
+                    </label>
+                    <select
+                      className="input"
+                      value={selectedHistoriPlayerId}
+                      onChange={(e) => setSelectedHistoriPlayerId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        fontSize: '0.9rem',
+                        padding: '8px 12px',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)'
+                      }}
+                    >
+                      <option value="semua">-- Semua Pemain ({sortedPeserta.length} Pemain) --</option>
+                      {sortedPeserta.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nama} (Divisi {p.divisi})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Sort Order & Total Count */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Urutan:</span>
+                    <button
+                      type="button"
+                      onClick={() => setHistoriSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title="Ubah Urutan Tanggal"
+                    >
+                      {historiSortOrder === 'desc' ? '⬇️ Tanggal Terbaru' : '⬆️ Tanggal Terlama'}
+                    </button>
+                  </div>
+
+                  <div style={{
+                    padding: '6px 14px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'rgba(0, 200, 255, 0.1)',
+                    border: '1px solid rgba(0, 200, 255, 0.3)',
+                    fontSize: '0.82rem',
+                    color: 'var(--primary-color)',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    🏓 {filteredMatches.length} Partai Selesai
+                  </div>
+                </div>
+              </div>
+
+              {/* Selected Player Summary Stats */}
+              {selectedPlayer && (
+                <div style={{
+                  marginTop: '14px',
+                  padding: '12px 16px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-light)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      color: '#fff'
+                    }}>
+                      {(selectedPlayer.nama || 'P').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                        {selectedPlayer.nama}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Divisi {selectedPlayer.divisi || '1'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Stats Pills */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ textAlign: 'center', padding: '4px 10px', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Main</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--text-primary)' }}>{filteredMatches.length}</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--success-color)', textTransform: 'uppercase' }}>Menang</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--success-color)' }}>{playerWins}</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '4px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--danger-color)', textTransform: 'uppercase' }}>Kalah</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--danger-color)' }}>{playerLosses}</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '4px 10px', background: 'rgba(0, 200, 255, 0.1)', borderRadius: '6px', border: '1px solid rgba(0, 200, 255, 0.3)' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--primary-color)', textTransform: 'uppercase' }}>Set (W-L)</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--primary-color)' }}>{playerSetsWon} - {playerSetsLost}</div>
+                    </div>
+                    {playerStanding && (
+                      <div style={{ textAlign: 'center', padding: '4px 10px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--warning-color)', textTransform: 'uppercase' }}>PTS Liga</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--warning-color)' }}>{playerStanding.poin}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* List of Match Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {filteredMatches.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: 'var(--text-muted)',
+                  background: 'var(--bg-surface)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px dashed var(--border-light)'
+                }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📜</div>
+                  <div style={{ fontWeight: '600', color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '4px' }}>
+                    {selectedPlayer
+                      ? `Belum ada riwayat pertandingan untuk ${selectedPlayer.nama}.`
+                      : 'Belum ada hasil pertandingan yang tercatat di liga ini.'}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Pertandingan yang sudah memiliki hasil skor akan otomatis terangkum di sini urut berdasarkan tanggal.
+                  </div>
+                </div>
+              ) : (
+                filteredMatches.map(m => {
+                  const isP1Winner = m.selesai && m.pemenang === m.peserta1?.id;
+                  const isP2Winner = m.selesai && m.pemenang === m.peserta2?.id;
+                  const [p1Sets, p2Sets] = parseMatchScore(m.skor);
+
+                  const isP1Selected = selectedPlayer && (m.peserta1?.id === selectedPlayer.id || m.peserta1?.nama === selectedPlayer.nama);
+                  const isP2Selected = selectedPlayer && (m.peserta2?.id === selectedPlayer.id || m.peserta2?.nama === selectedPlayer.nama);
+
+                  return (
+                    <div
+                      key={`${m.pekanId}-${m.id}`}
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--bg-surface-elevated)',
+                        border: isP1Selected || isP2Selected ? '1px solid rgba(0, 200, 255, 0.4)' : '1px solid var(--border-light)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        boxShadow: isP1Selected || isP2Selected ? '0 2px 10px rgba(0, 200, 255, 0.08)' : undefined
+                      }}
+                    >
+                      {/* Top Row: Pekan Name, Meja, Tanggal, Jam, Wasit */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '6px 10px',
+                        paddingBottom: '8px',
+                        borderBottom: '1px solid var(--border-light)',
+                        fontSize: '0.78rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: 'rgba(0, 200, 255, 0.1)',
+                            color: 'var(--primary-color)',
+                            fontWeight: 'bold',
+                            fontSize: '0.75rem'
+                          }}>
+                            📅 {m.pekanName}
+                          </span>
+                          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            🏓 {m.meja || 'Meja 1'}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            📅 {m.tanggal ? formatTanggal(m.tanggal) : m.pekanDateRange}
+                          </span>
+                          <span style={{ color: 'var(--text-secondary)' }}>
+                            ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Bebas'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
+                          <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
+                            {m.wasit?.nama ? (m.wasit.divisi ? `${m.wasit.nama} (Div ${m.wasit.divisi})` : m.wasit.nama) : 'Tanpa Wasit'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Middle Row: Player 1 vs Player 2 (3-Column Grid) */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 0'
+                      }}>
+                        {/* Player 1 */}
+                        <div style={{ textAlign: 'right', minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{
+                            fontWeight: isP1Winner ? 'bold' : isP1Selected ? 'bold' : '600',
+                            color: isP1Winner ? 'var(--primary-color)' : isP1Selected ? 'var(--primary-color)' : 'var(--text-primary)',
+                            fontSize: '0.92rem',
+                            lineHeight: '1.25',
+                            wordBreak: 'break-word'
+                          }}>
+                            {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                            {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
+                          </div>
+                        </div>
+
+                        {/* Score Box */}
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '64px',
+                          padding: '4px 10px',
+                          background: 'var(--bg-surface)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-light)',
+                          flexShrink: 0
+                        }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: '900', letterSpacing: '1.5px', color: 'var(--text-primary)', lineHeight: 1 }}>
+                            {p1Sets} - {p2Sets}
+                          </div>
+                          <span style={{ fontSize: '0.62rem', color: 'var(--success-color)', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '2px' }}>
+                            Selesai
+                          </span>
+                        </div>
+
+                        {/* Player 2 */}
+                        <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
+                          <div style={{
+                            fontWeight: isP2Winner ? 'bold' : isP2Selected ? 'bold' : '600',
+                            color: isP2Winner ? 'var(--primary-color)' : isP2Selected ? 'var(--primary-color)' : 'var(--text-primary)',
+                            fontSize: '0.92rem',
+                            lineHeight: '1.25',
+                            wordBreak: 'break-word'
+                          }}>
+                            {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                            {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Action Buttons */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        paddingTop: '8px',
+                        borderTop: '1px solid var(--border-light)'
+                      }}>
+                        {m.fotoBukti && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage(m.fotoBukti)}
+                            className="btn btn-sm btn-secondary"
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '4px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'rgba(0, 200, 255, 0.1)',
+                              borderColor: 'rgba(0, 200, 255, 0.3)',
+                              color: 'var(--primary-color)'
+                            }}
+                            title="Lihat Foto Bukti Pertandingan"
+                          >
+                            📷 Bukti
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            onClick={() => handleOpenScoreModal(m.pekanObj, m)}
+                            className="btn btn-sm btn-secondary"
+                            style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                          >
+                            ✏️ Edit Skor
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenScoreboard(m.pekanObj, m)}
+                          className="btn btn-secondary btn-sm"
+                          title="Papan Skor Digital Langsung"
+                          style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                        >
+                          📺 Scoreboard
+                        </button>
+                        {canManage && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMatch(m.pekanId, m.id)}
+                            className="btn btn-secondary btn-sm"
+                            title="Hapus Hasil Pertandingan"
+                            style={{ fontSize: '0.75rem', padding: '4px 8px', color: 'var(--danger-color)' }}
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* TAB 4: STATISTIK */}
       {activeTab === 'statistik' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.25rem' }}>
           {/* Ringkasan Liga Card */}
@@ -2242,7 +2695,9 @@ const LeagueDetail = () => {
                       <span style={{ fontSize: '1.4rem' }}>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
                       <div>
                         <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{p.nama}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{p.namaPTM}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Divisi {((league.peserta || []).find(x => x.id === p.pesertaId)?.divisi) || p.divisi || '1'}
+                        </div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -2335,7 +2790,7 @@ const LeagueDetail = () => {
                   style={{ fontWeight: 'bold', fontSize: '0.85rem' }}
                 >
                   {sortedPeserta.map(p => (
-                    <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
+                    <option key={p.id} value={p.id}>{p.nama} (Div {p.divisi})</option>
                   ))}
                 </select>
               </div>
@@ -2350,7 +2805,7 @@ const LeagueDetail = () => {
                   style={{ fontWeight: 'bold', fontSize: '0.85rem' }}
                 >
                   {sortedPeserta.map(p => (
-                    <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
+                    <option key={p.id} value={p.id}>{p.nama} (Div {p.divisi})</option>
                   ))}
                 </select>
               </div>
@@ -2378,7 +2833,7 @@ const LeagueDetail = () => {
                 >
                   <option value="">-- Tanpa Wasit --</option>
                   {sortedPeserta.map(p => (
-                    <option key={p.id} value={p.id}>{p.nama} ({p.namaPTM})</option>
+                    <option key={p.id} value={p.id}>{p.nama} (Div {p.divisi})</option>
                   ))}
                 </select>
               </div>
