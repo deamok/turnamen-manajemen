@@ -2077,7 +2077,7 @@ const LeagueDetail = () => {
                                   {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                                 </div>
                                 <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
-                                  {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
+                                  {m.peserta1?.divisi ? `(Div ${m.peserta1.divisi})` : ''}
                                 </div>
                               </div>
 
@@ -2114,7 +2114,7 @@ const LeagueDetail = () => {
                                   {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                                 </div>
                                 <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
-                                  {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
+                                  {m.peserta2?.divisi ? `(Div ${m.peserta2.divisi})` : ''}
                                 </div>
                               </div>
                             </div>
@@ -2398,7 +2398,7 @@ const LeagueDetail = () => {
                         {selectedPlayer.nama}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: '#facc15', fontWeight: 'bold' }}>
-                        Divisi {selectedPlayer.divisi || '1'}
+                        (Div {selectedPlayer.divisi || '1'})
                       </div>
                     </div>
                   </div>
@@ -2476,7 +2476,7 @@ const LeagueDetail = () => {
                         boxShadow: isP1Selected || isP2Selected ? '0 2px 10px rgba(0, 200, 255, 0.08)' : undefined
                       }}
                     >
-                      {/* Top Row: Pekan Name, Meja, Tanggal, Jam, Wasit */}
+                      {/* Top Row: Pekan Name, Meja, Tanggal, Wasit */}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -2531,7 +2531,7 @@ const LeagueDetail = () => {
                             {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                           </div>
                           <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
-                            {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
+                            {m.peserta1?.divisi ? `(Div ${m.peserta1.divisi})` : ''}
                           </div>
                         </div>
 
@@ -2568,7 +2568,7 @@ const LeagueDetail = () => {
                             {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                           </div>
                           <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
-                            {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
+                            {m.peserta2?.divisi ? `(Div ${m.peserta2.divisi})` : ''}
                           </div>
                         </div>
                       </div>
@@ -2694,7 +2694,7 @@ const LeagueDetail = () => {
                       <div>
                         <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{p.nama}</div>
                         <div style={{ fontSize: '0.75rem', color: '#facc15', fontWeight: 'bold' }}>
-                          Divisi {((league.peserta || []).find(x => x.id === p.pesertaId)?.divisi) || p.divisi || '1'}
+                          (Div {((league.peserta || []).find(x => x.id === p.pesertaId)?.divisi) || p.divisi || '1'})
                         </div>
                       </div>
                     </div>
