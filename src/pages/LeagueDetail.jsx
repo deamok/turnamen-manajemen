@@ -1141,7 +1141,7 @@ const LeagueDetail = () => {
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-primary)' }}>
                 {league.juara.nama} {((league.peserta || []).find(p => p.id === league.juara.id)?.divisi) && (
-                  <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#facc15' }}>
                     (Divisi {((league.peserta || []).find(p => p.id === league.juara.id)?.divisi)})
                   </span>
                 )}
@@ -1266,7 +1266,7 @@ const LeagueDetail = () => {
                         <span style={{ fontWeight: idx < 3 ? 'bold' : '500', color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: '1.15' }}>
                           {row.nama}
                         </span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: '1' }}>
+                        <span style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', lineHeight: '1' }}>
                           (Div {div})
                         </span>
                       </div>
@@ -2034,7 +2034,7 @@ const LeagueDetail = () => {
                               fontSize: '0.78rem'
                             }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>
                                   🏓 {m.meja || 'Meja 1'}
                                 </span>
                                 <span style={{ color: 'var(--text-secondary)' }}>
@@ -2047,8 +2047,12 @@ const LeagueDetail = () => {
 
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
-                                <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
-                                  {m.wasit?.nama ? (m.wasit.divisi ? `${m.wasit.nama} (Div ${m.wasit.divisi})` : m.wasit.nama) : 'Tanpa Wasit'}
+                                <span style={{ fontWeight: '500', color: m.wasit ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                                  {m.wasit?.nama ? (
+                                    <span>
+                                      {m.wasit.nama} {m.wasit.divisi && <span style={{ color: '#facc15', fontWeight: 'bold' }}>(Div {m.wasit.divisi})</span>}
+                                    </span>
+                                  ) : 'Tanpa Wasit'}
                                 </span>
                               </div>
                             </div>
@@ -2072,7 +2076,7 @@ const LeagueDetail = () => {
                                 }}>
                                   {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                                 </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                                <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
                                   {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
                                 </div>
                               </div>
@@ -2109,7 +2113,7 @@ const LeagueDetail = () => {
                                 }}>
                                   {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                                 </div>
-                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                                <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
                                   {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
                                 </div>
                               </div>
@@ -2393,7 +2397,7 @@ const LeagueDetail = () => {
                       <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--text-primary)' }}>
                         {selectedPlayer.nama}
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#facc15', fontWeight: 'bold' }}>
                         Divisi {selectedPlayer.divisi || '1'}
                       </div>
                     </div>
@@ -2484,31 +2488,25 @@ const LeagueDetail = () => {
                         fontSize: '0.78rem'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            background: 'rgba(0, 200, 255, 0.1)',
-                            color: 'var(--primary-color)',
-                            fontWeight: 'bold',
-                            fontSize: '0.75rem'
-                          }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>
                             📅 {m.pekanName}
                           </span>
-                          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>
                             🏓 {m.meja || 'Meja 1'}
                           </span>
                           <span style={{ color: 'var(--text-secondary)' }}>
                             📅 {m.tanggal ? formatTanggal(m.tanggal) : m.pekanDateRange}
                           </span>
-                          <span style={{ color: 'var(--text-secondary)' }}>
-                            ⏰ {m.jam && m.jam !== 'Bebas' ? `${m.jam} WIB` : 'Bebas'}
-                          </span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>👨‍⚖️ Wasit:</span>
-                          <span style={{ fontWeight: '500', color: m.wasit ? 'var(--warning-color)' : 'var(--text-muted)' }}>
-                            {m.wasit?.nama ? (m.wasit.divisi ? `${m.wasit.nama} (Div ${m.wasit.divisi})` : m.wasit.nama) : 'Tanpa Wasit'}
+                          <span style={{ fontWeight: '500', color: m.wasit ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            {m.wasit?.nama ? (
+                              <span>
+                                {m.wasit.nama} {m.wasit.divisi && <span style={{ color: '#facc15', fontWeight: 'bold' }}>(Div {m.wasit.divisi})</span>}
+                              </span>
+                            ) : 'Tanpa Wasit'}
                           </span>
                         </div>
                       </div>
@@ -2532,7 +2530,7 @@ const LeagueDetail = () => {
                           }}>
                             {isP1Winner && '👑 '} {m.peserta1?.nama || 'Pemain 1'}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                          <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
                             {m.peserta1?.divisi ? `Divisi ${m.peserta1.divisi}` : ''}
                           </div>
                         </div>
@@ -2569,7 +2567,7 @@ const LeagueDetail = () => {
                           }}>
                             {m.peserta2?.nama || 'Pemain 2'} {isP2Winner && ' 👑'}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', wordBreak: 'break-word' }}>
+                          <div style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: 'bold', marginTop: '2px', wordBreak: 'break-word' }}>
                             {m.peserta2?.divisi ? `Divisi ${m.peserta2.divisi}` : ''}
                           </div>
                         </div>
@@ -2695,7 +2693,7 @@ const LeagueDetail = () => {
                       <span style={{ fontSize: '1.4rem' }}>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
                       <div>
                         <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{p.nama}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#facc15', fontWeight: 'bold' }}>
                           Divisi {((league.peserta || []).find(x => x.id === p.pesertaId)?.divisi) || p.divisi || '1'}
                         </div>
                       </div>
